@@ -14,7 +14,7 @@ Antes de qualquer coisa, verificar:
 2. Verificar se o usuário está no branch inicial (`git branch --show-current`)
 3. Verificar se existem alterações não commitadas (`git status`)
 
-**Se o branch está correto e não há alterações pendentes:** seguir para o próximo passo normalmente.
+**Se o branch está correto e não há alterações pendentes:** atualizar o branch inicial com `git pull` antes de seguir para o próximo passo. Se o pull falhar (ex: conflitos remotos), avisar o usuário e aguardar orientação antes de continuar.
 
 **Se o branch está errado OU existem alterações não commitadas:** apresentar as seguintes opções ao usuário:
 
@@ -28,7 +28,7 @@ Antes de qualquer coisa, verificar:
 > 3. **Abortar** — cancela o init sem fazer nada
 
 Aguardar a escolha do usuário e agir conforme:
-- **Opção 1:** `git checkout -- .` + `git checkout {branch-inicial}` + criar branch da task seguindo o padrão definido em `pack-up-instructions.md`
+- **Opção 1:** `git checkout -- .` + `git checkout {branch-inicial}` + `git pull` (atualizar o branch) + criar branch da task seguindo o padrão definido em `pack-up-instructions.md`
 - **Opção 2:** pular para o passo de criação de estrutura (passo 5) e encerrar após criar as pastas
 - **Opção 3:** encerrar sem executar nada
 
