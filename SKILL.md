@@ -81,12 +81,19 @@ Antes de delegar para uma sub-skill, verifique se os pré-requisitos foram cumpr
 Se o usuário retorna após uma interrupção:
 
 1. **Verificar estado atual** — Rodar `status` internamente para entender onde parou
-2. **Identificar fase** — Baseado nos arquivos existentes em `GDD/tasks/{cod}/`:
+2. **Identificar fase** — Ler `GDD/tasks/{cod}/status.md` (campo `phase`) e sugerir o próximo passo:
+   - `initialized` → sugerir `plan`
+   - `planned` → sugerir `implement`
+   - `implementing` → sugerir continuar o `implement` ou rodar `update-plan` se o escopo mudou
+   - `implemented` → sugerir `pack-up`
+   - `packed-up` → sugerir `learn`
+   - `learned` → task finalizada, sem próximo passo
+3. **Fallback** — Se `status.md` não existir (task criada antes desta convenção), inferir a fase pelos arquivos existentes:
    - Só `description.md` existe → parou após `init`, sugerir `plan`
    - `plan.md` preenchido mas sem alterações no git → parou antes do `implement`, sugerir `implement`
    - Alterações no git não commitadas → parou durante ou após `implement`, sugerir `pack-up`
    - PR já criado → task finalizada
-3. **Sugerir próximo passo** — Informar o usuário onde parou e qual skill rodar
+4. **Sugerir próximo passo** — Informar o usuário onde parou e qual skill rodar
 
 ## Comando: `help`
 

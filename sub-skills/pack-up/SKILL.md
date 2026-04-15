@@ -87,7 +87,16 @@ Executar as ações finais definidas no `pack-up-instructions.md`. Exemplos:
 - Atribuir revisores
 - Qualquer outra ação listada
 
-### 10. Reportar resultado
+### 10. Atualizar status para `packed-up`
+
+Após o PR ser criado e as ações finais executadas, atualizar `GDD/tasks/{cod-da-task}/status.md`:
+
+- `phase`: `packed-up`
+- `updated_at`: timestamp ISO 8601 em UTC
+- `updated_by`: `pack-up`
+- `branch`: manter o valor atual
+
+### 11. Reportar resultado
 
 > ✅ Pack-up concluído para `{cod-da-task}`!
 >
@@ -97,3 +106,9 @@ Executar as ações finais definidas no `pack-up-instructions.md`. Exemplos:
 >
 > [Resultado dos processos de finalização (testes, linter, etc.)]
 > [Ações finais executadas]
+
+---
+
+## Guard-rails
+
+- **Esta skill não escreve em `GDD/knowledge.md`.** O registro no knowledge é responsabilidade exclusiva da skill `learn`, invocada pelo usuário após o pack-up.

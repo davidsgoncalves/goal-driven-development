@@ -94,7 +94,8 @@ Criar a seguinte estrutura em `GDD/tasks/`:
 ```
 GDD/tasks/{cod-da-task}/
 ├── description.md
-└── plan.md
+├── plan.md
+└── status.md
 ```
 
 **`description.md`** — preencher com:
@@ -107,12 +108,35 @@ GDD/tasks/{cod-da-task}/
 
 **`plan.md`** — criar vazio, será preenchido em etapa posterior.
 
+**`status.md`** — criar com YAML frontmatter registrando o estado inicial:
+
+```yaml
+---
+phase: initialized
+updated_at: {timestamp-iso-8601-utc}
+updated_by: init
+branch: {nome-do-branch-criado-ou-null-se-opcao-2}
+---
+```
+
+- `phase`: sempre `initialized` neste passo
+- `updated_at`: timestamp ISO 8601 em UTC (ex: `2026-04-15T14:30:00Z`)
+- `updated_by`: sempre `init` neste passo
+- `branch`: nome do branch criado (opção 1 do passo 1). Se o usuário escolheu a opção 2 ("Criar apenas as pastas"), deixar `null`.
+
 ### 7. Reportar resultado
 
 > ✅ Task `{cod-da-task}` inicializada!
 >
 > 📄 `GDD/tasks/{cod-da-task}/description.md` — descrição preenchida
 > 📋 `GDD/tasks/{cod-da-task}/plan.md` — aguardando planejamento
+> 📍 `GDD/tasks/{cod-da-task}/status.md` — fase: `initialized`
 >
 > [Se encontrou contexto no knowledge.md, listar aqui]
 > [Se encontrou links do Figma, listar aqui]
+
+---
+
+## Guard-rails
+
+- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo. Aqui, o knowledge é apenas **lido** para encontrar tasks semelhantes (passo 4).

@@ -77,7 +77,16 @@ Atualizar a entrada da task no `GDD/knowledge.md` com o formato completo:
 - Se a entrada já existe (de uma execução anterior do learn), mesclar os novos aprendizados com os existentes
 - Se não existe, criar a entrada completa
 
-### 7. Reportar resultado
+### 7. Atualizar status para `learned`
+
+Após gravar a entrada no `knowledge.md`, atualizar `GDD/tasks/{cod-da-task}/status.md`:
+
+- `phase`: `learned`
+- `updated_at`: timestamp ISO 8601 em UTC
+- `updated_by`: `learn`
+- `branch`: manter o valor atual
+
+### 8. Reportar resultado
 
 > ✅ Knowledge registrado para `{cod-da-task}`!
 >
@@ -86,3 +95,9 @@ Atualizar a entrada da task no `GDD/knowledge.md` com o formato completo:
 > 💡 Aprendizados: {quantidade} aprendizados extraídos
 >
 > O knowledge está disponível em `GDD/knowledge.md` para consulta em tasks futuras.
+
+---
+
+## Guard-rails
+
+- **Esta skill é a única autorizada a escrever em `GDD/knowledge.md`.** Qualquer atualização ao knowledge deve passar por aqui, ativada explicitamente pelo usuário.

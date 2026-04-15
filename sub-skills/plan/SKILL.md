@@ -83,3 +83,18 @@ Após escrever o plano, chamar a sub-skill `review --plan` passando o código da
 - Se o relatório retornar **Aprovado**: apresentar o plano ao usuário para validação final
 - Se o relatório retornar **Ajustes necessários**: avaliar as correções sugeridas, aplicar as pertinentes no `plan.md` e apresentar o plano corrigido ao usuário
 - Se o relatório retornar **Reprovado**: reescrever o plano com base no feedback e rodar a review novamente
+
+### 9. Atualizar status
+
+Após a review ser aprovada (e o usuário validar o plano), atualizar `GDD/tasks/{cod-da-task}/status.md`:
+
+- `phase`: `planned`
+- `updated_at`: timestamp ISO 8601 em UTC
+- `updated_by`: `plan`
+- `branch`: manter o valor atual (não alterar)
+
+---
+
+## Guard-rails
+
+- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.

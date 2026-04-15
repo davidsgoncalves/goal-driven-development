@@ -101,3 +101,10 @@ Chamada pela skill `pack-up` antes de finalizar.
 - A skill chamadora (`plan` ou `pack-up`) é responsável por avaliar o relatório e decidir se executa as correções sugeridas.
 - Se o veredito for "Aprovado", a skill chamadora pode prosseguir sem intervenção.
 - Se o veredito for "Ajustes necessários" ou "Reprovado", a skill chamadora deve apresentar o relatório ao usuário e agir conforme necessário.
+
+---
+
+## Guard-rails
+
+- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
+- **Esta skill não altera `status.md`.** Mudança de fase é responsabilidade da skill chamadora.

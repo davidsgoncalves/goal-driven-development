@@ -58,6 +58,21 @@ Chamar a sub-skill `review --plan` para validar o plano atualizado contra a desc
 - Se a descrição também mudou (ex: escopo novo do Jira), atualizar o `description.md` primeiro
 - Avaliar o relatório da review e aplicar correções se necessário
 
-### 6. Apresentar plano atualizado
+### 6. Atualizar status
+
+Atualizar `GDD/tasks/{cod-da-task}/status.md`:
+
+- `phase`: **manter o valor atual** (update-plan não muda a fase da task)
+- `updated_at`: timestamp ISO 8601 em UTC
+- `updated_by`: `update-plan`
+- `branch`: manter o valor atual
+
+### 7. Apresentar plano atualizado
 
 Mostrar ao usuário o plano atualizado com as diferenças destacadas e pedir validação antes de prosseguir.
+
+---
+
+## Guard-rails
+
+- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.

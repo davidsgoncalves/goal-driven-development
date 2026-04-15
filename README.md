@@ -25,7 +25,7 @@ install → init → plan → implement → pack-up
 
 4. **implement** — Executa o plano. Tasks simples sao executadas diretamente. Tasks complexas sao divididas em subagents paralelos. Suporta flag `--code-like-me` para implementacao cirurgica que segue exatamente os padroes do projeto.
 
-5. **pack-up** — Finaliza a task. Roda review plano vs execucao, commit, testes, linter, push, cria PR e registra no knowledge. Tudo seguindo as convencoes definidas no `pack-up-instructions.md`.
+5. **pack-up** — Finaliza a task. Roda review plano vs execucao, commit, testes, linter, push e cria PR. Tudo seguindo as convencoes definidas no `pack-up-instructions.md`. **Nao escreve no knowledge** — isso e responsabilidade exclusiva da skill `learn`.
 
 6. **learn** — Transforma a task executada em conhecimento reutilizavel. Analisa descricao, plano, commits e diffs para extrair aprendizados. Faz Q&A com o usuario para capturar decisoes nao visiveis no codigo. Registra tudo no knowledge.md para consulta em tasks futuras.
 
@@ -61,13 +61,38 @@ GDD/
 
 ```
 GDD/
-├── knowledge.md                # Registro de tasks finalizadas (commits, arquivos, aprendizados)
+├── knowledge.md                # Registro de tasks finalizadas (commits, arquivos, aprendizados) — escrito apenas pela skill `learn`
 ├── pack-up-instructions.md     # Convencoes de branch, commit, PR, testes, acoes finais
 └── tasks/
     └── {cod-da-task}/
         ├── description.md      # Descricao, links Jira/Figma, Q&A, commits de referencia
-        └── plan.md             # Plano de implementacao
+        ├── plan.md             # Plano de implementacao
+        └── status.md           # Estado atual da task (fase, branch, updated_at) — escrito por cada step do ciclo
 ```
+
+### Arquivo `status.md` (por task)
+
+Cada task tem um `status.md` com YAML frontmatter que registra em que fase a task esta. Isso permite que a skill `status` leia o estado direto, sem precisar inferir a partir de arquivos e estado do git.
+
+```yaml
+---
+phase: implementing
+updated_at: 2026-04-15T14:30:00Z
+updated_by: implement
+branch: task/PROJ-123/add-phone-field
+---
+```
+
+Valores possiveis de `phase`:
+
+| Valor | Quando | Escrito por |
+|-------|--------|-------------|
+| `initialized` | Task criada, aguardando plano | `init` |
+| `planned` | Plano aprovado, aguardando implementacao | `plan` |
+| `implementing` | Implementacao em andamento | `implement` |
+| `implemented` | Implementacao concluida, aguardando pack-up | `implement` |
+| `packed-up` | PR criado, aguardando learn | `pack-up` |
+| `learned` | Knowledge registrado, task finalizada | `learn` |
 
 ## Integracoes opcionais
 

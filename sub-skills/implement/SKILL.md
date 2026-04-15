@@ -29,6 +29,15 @@ Ler o arquivo `GDD/tasks/{cod-da-task}/plan.md` para obter o plano de implementa
 - Se o plano estiver vazio, informar o usuário que precisa rodar a skill `plan` antes
 - Se o plano existir, analisar sua estrutura e complexidade
 
+### 2.1. Atualizar status para `implementing`
+
+Antes de começar a implementação de fato, atualizar `GDD/tasks/{cod-da-task}/status.md`:
+
+- `phase`: `implementing`
+- `updated_at`: timestamp ISO 8601 em UTC
+- `updated_by`: `implement`
+- `branch`: manter o valor atual
+
 ### 3. Carregar contexto visual (Figma)
 
 Ler o `GDD/tasks/{cod-da-task}/description.md` e verificar se há links do Figma.
@@ -74,10 +83,25 @@ Após implementar:
 - Rodar linter se disponível
 - Verificar se todos os passos do plano foram executados
 
-### 7. Reportar resultado
+### 7. Atualizar status para `implemented`
+
+Após concluir a verificação pós-implementação, atualizar `GDD/tasks/{cod-da-task}/status.md`:
+
+- `phase`: `implemented`
+- `updated_at`: timestamp ISO 8601 em UTC
+- `updated_by`: `implement`
+- `branch`: manter o valor atual
+
+### 8. Reportar resultado
 
 Apresentar ao usuário:
 - Resumo do que foi implementado
 - Arquivos criados ou modificados
 - Se usou subagents, listar o que cada um fez
 - Pendências ou pontos de atenção (se houver)
+
+---
+
+## Guard-rails
+
+- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
