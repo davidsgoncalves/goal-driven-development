@@ -1,27 +1,57 @@
 ---
 name: init
 description: |
-  Recebe uma task (via Jira ou manual), coleta contexto, consulta histórico e cria a estrutura da task no projeto. Use quando o usuário mencionar: "nova task", "iniciar task", "init", "criar task", ou quando a fase de inicialização for ativada pelo GDD.
-tools: Read, Glob, Grep, Bash, Edit, Write, Agent
+  Cria a estrutura de uma nova task no projeto: branch, pasta em `GDD/tasks/` e os arquivos `description.md` (com o input bruto do usuário), `plan.md` (vazio) e `status.md` (fase `initialized`). Não busca dados no Jira, não consulta knowledge, não faz Q&A — isso é responsabilidade da skill `plan`. Use quando o usuário mencionar: "nova task", "iniciar task", "init", "criar task", ou quando a fase de inicialização for ativada pelo GDD.
+tools: Read, Glob, Grep, Bash, Edit, Write
 ---
 
 # Init — Sub-skill de Inicialização de Task
 
-> Recebe uma task (via Jira ou manual), coleta contexto, consulta histórico e cria a estrutura da task no projeto.
+> Cria a estrutura base de uma nova task. Salva o input do usuário sem enriquecer. O trabalho de enriquecimento (Jira, Figma, knowledge, Q&A) acontece na skill `plan`.
 
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
-### 1. Verificar estado do git
+### 0. Executar hook `before init`
 
-Antes de qualquer coisa, verificar:
+Ler `GDD/hooks.md` e localizar a seção `# before init`.
 
-1. Ler `GDD/pack-up-instructions.md` para identificar o **branch inicial** configurado pelo usuário
-2. Verificar se o usuário está no branch inicial (`git branch --show-current`)
-3. Verificar se existem alterações não commitadas (`git status`)
+- Se o conteúdo for `skip-hook`: pular e seguir para o passo 1.
+- Se houver instruções em linguagem natural: executá-las integralmente antes de prosseguir. Se as instruções falharem ou pedirem confirmação, pausar e consultar o usuário.
 
-**Se o branch está correto e não há alterações pendentes:** atualizar o branch inicial com `git pull` antes de seguir para o próximo passo. Se o pull falhar (ex: conflitos remotos), avisar o usuário e aguardar orientação antes de continuar.
+### 1. Ler convenções de branch no `patterns.md`
+
+Ler `GDD/patterns.md` e extrair:
+
+- **Branch inicial** — nome do branch base. Se o repositório contém múltiplos projetos com branches diferentes, identificar qual aplica ao projeto corrente (pelo diretório ou perguntando ao usuário).
+- **Padrão de nome de branch** — formato a ser seguido ao criar o branch da task (ex: `task/<cod-da-task>/<descrição-kebab-case>`).
+
+Esses dois valores são obrigatórios para os passos 3 (criação do branch).
+
+### 2. Receber input da task
+
+O usuário deve fornecer **uma** das seguintes opções:
+
+- **Link do Jira** — ex: `https://empresa.atlassian.net/browse/PROJ-123` → extrair o código (`PROJ-123`) da URL
+- **Código da task** — ex: `PROJ-123` → usar direto
+- **Nome/descrição manual** — texto livre. Neste caso, pedir ao usuário um código ou nome curto para identificar a task (ex: `minha-task`)
+
+Se o padrão de branch (passo 1) exige um segmento de descrição (ex: `<descrição-kebab-case>`) e o input do usuário não fornece algo claro, perguntar ao usuário uma descrição curta para compor o nome do branch.
+
+**Não buscar dados no Jira nesta skill.** Apenas capturar o input. A skill `plan` fará o fetch do Jira quando for elaborar o plano.
+
+### 3. Verificar estado do git e criar o branch da task
+
+Com o branch inicial e o padrão de nome de branch (passo 1) e o cod-da-task + descrição (passo 2) em mãos:
+
+1. Verificar se o usuário está no branch inicial (`git branch --show-current`)
+2. Verificar se existem alterações não commitadas (`git status`)
+
+**Se o branch está correto e não há alterações pendentes:**
+- `git pull` para atualizar o branch inicial
+- Criar o branch da task aplicando o **padrão de nome de branch** (ex: `task/PROJ-123/add-phone-field`)
+- Se o pull falhar (ex: conflitos remotos), avisar o usuário e aguardar orientação antes de continuar
 
 **Se o branch está errado OU existem alterações não commitadas:** apresentar as seguintes opções ao usuário:
 
@@ -35,59 +65,11 @@ Antes de qualquer coisa, verificar:
 > 3. **Abortar** — cancela o init sem fazer nada
 
 Aguardar a escolha do usuário e agir conforme:
-- **Opção 1:** `git checkout -- .` + `git checkout {branch-inicial}` + `git pull` (atualizar o branch) + criar branch da task seguindo o padrão definido em `pack-up-instructions.md`
-- **Opção 2:** pular para o passo de criação de estrutura (passo 5) e encerrar após criar as pastas
+- **Opção 1:** `git checkout -- .` + `git checkout {branch-inicial}` + `git pull` + criar branch da task aplicando o **padrão de nome de branch** lido no passo 1
+- **Opção 2:** pular para o passo 4 (criar estrutura sem mexer no git) e encerrar após criar as pastas
 - **Opção 3:** encerrar sem executar nada
 
-### 2. Receber input da task
-
-O usuário deve fornecer **uma** das seguintes opções:
-
-- **Link do Jira** — ex: `https://empresa.atlassian.net/browse/PROJ-123`
-- **Código da task** — ex: `PROJ-123` (será buscado no Jira via MCP Atlassian)
-- **Nome/descrição manual** — texto livre descrevendo a task
-
-### 3. Obter dados da task
-
-**Se foi fornecido link ou código do Jira:**
-- Acessar o Jira via MCP Atlassian e obter:
-  - Título da task
-  - Descrição completa
-  - Links do Figma (se existirem nos campos ou na descrição)
-  - Qualquer anexo ou contexto relevante
-- Usar o código da task do Jira como identificador (ex: `PROJ-123`)
-
-**Se foi fornecida descrição manual:**
-- O usuário deve informar um código ou nome curto para identificar a task (ex: `minha-task`)
-- Usar o texto fornecido como descrição
-
-### 4. Consultar knowledge
-
-Ler o arquivo `GDD/knowledge.md`. O knowledge terá registros de tasks anteriores no formato:
-
-```
-### {cod-da-task} — {breve descrição}
-- **commits:** {hash1}, {hash2}, ...
-- **arquivos principais:** {lista dos arquivos mais relevantes}
-- **aprendizados:** {o que foi aprendido, decisões tomadas, armadilhas evitadas}
-```
-
-Verificar se existem tasks anteriores com contexto semelhante à task atual. Se encontrar tasks semelhantes, guardar os **códigos de commit** (pode haver mais de um por task) e os **aprendizados** para incluir no `description.md` como referência.
-
-### 5. Sessão de perguntas e respostas
-
-Após coletar os dados da task, iniciar uma sessão de Q&A com o usuário para esclarecer a task:
-
-- Fazer perguntas sobre pontos ambíguos ou faltantes na descrição
-- Se a task veio do Jira e a descrição é vaga, perguntar mais
-- Se há links do Figma, perguntar se o escopo do design é completo ou parcial
-- Agrupar perguntas — não fazer uma por uma
-
-**Registrar todas as perguntas e respostas** — elas serão salvas no `description.md`.
-
-Se a descrição já é clara e completa, informar ao usuário e seguir adiante.
-
-### 6. Criar estrutura da task
+### 4. Criar estrutura da task
 
 Criar a seguinte estrutura em `GDD/tasks/`:
 
@@ -98,15 +80,25 @@ GDD/tasks/{cod-da-task}/
 └── status.md
 ```
 
-**`description.md`** — preencher com:
-- Título da task
-- Descrição completa (do Jira ou fornecida manualmente)
-- Link do Jira (se disponível)
-- Link(s) do Figma (se encontrados)
-- Tasks semelhantes encontradas no knowledge (apenas os códigos de commit como referência)
-- Sessão de Q&A — todas as perguntas feitas e respostas do usuário
+**`description.md`** — preencher com estrutura mínima contendo **apenas o input bruto do usuário**:
 
-**`plan.md`** — criar vazio, será preenchido em etapa posterior.
+```markdown
+# {cod-da-task}
+
+## Input do usuário
+
+{input bruto conforme fornecido — link do Jira, código puro, ou texto manual}
+
+---
+
+> Esta descrição está bruta. A skill `plan` irá enriquecê-la com:
+> - dados do Jira (se houver código/link)
+> - links do Figma encontrados no Jira
+> - referências a tasks semelhantes do `knowledge.md`
+> - perguntas e respostas esclarecendo escopo e edge cases
+```
+
+**`plan.md`** — criar vazio, será preenchido pela skill `plan`.
 
 **`status.md`** — criar com YAML frontmatter registrando o estado inicial:
 
@@ -116,27 +108,42 @@ phase: initialized
 updated_at: {timestamp-iso-8601-utc}
 updated_by: init
 branch: {nome-do-branch-criado-ou-null-se-opcao-2}
+learned: false
+prs: []
 ---
 ```
 
 - `phase`: sempre `initialized` neste passo
 - `updated_at`: timestamp ISO 8601 em UTC (ex: `2026-04-15T14:30:00Z`)
 - `updated_by`: sempre `init` neste passo
-- `branch`: nome do branch criado (opção 1 do passo 1). Se o usuário escolheu a opção 2 ("Criar apenas as pastas"), deixar `null`.
+- `branch`: nome do branch criado no passo 3. Se o usuário escolheu a opção 2 ("Criar apenas as pastas"), deixar `null`.
+- `learned`: sempre `false` neste passo. Será flipado para `true` pela skill `learn` quando o usuário escolher transformar a task em conhecimento.
+- `prs`: sempre `[]` neste passo. Será populado pela skill `pack-up` a cada PR criado.
 
-### 7. Reportar resultado
+### 5. Executar hook `after init`
+
+Ler `GDD/hooks.md` e localizar a seção `# after init`.
+
+- Se o conteúdo for `skip-hook`: pular e seguir para o passo 6.
+- Se houver instruções em linguagem natural: executá-las integralmente antes do relatório final.
+
+### 6. Reportar resultado
 
 > ✅ Task `{cod-da-task}` inicializada!
 >
-> 📄 `GDD/tasks/{cod-da-task}/description.md` — descrição preenchida
+> 🌿 Branch: `{nome-do-branch}` (ou "não criado" se opção 2)
+> 📄 `GDD/tasks/{cod-da-task}/description.md` — input bruto salvo (aguardando enriquecimento pelo `plan`)
 > 📋 `GDD/tasks/{cod-da-task}/plan.md` — aguardando planejamento
 > 📍 `GDD/tasks/{cod-da-task}/status.md` — fase: `initialized`
 >
-> [Se encontrou contexto no knowledge.md, listar aqui]
-> [Se encontrou links do Figma, listar aqui]
+> 💡 Próximo passo: rode `plan` — ela vai buscar dados no Jira, consultar knowledge, fazer Q&A com você e então escrever o plano de implementação.
+>
+> [Se hooks before/after foram executados, listar resumidamente o que rodou]
 
 ---
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo. Aqui, o knowledge é apenas **lido** para encontrar tasks semelhantes (passo 4).
+- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
+- **Esta skill não busca dados em sistemas externos** (Jira, Figma). O fetch e a consulta ao knowledge são responsabilidade da skill `plan`.
+- **Esta skill não faz Q&A com o usuário sobre a task.** O esclarecimento de escopo acontece na skill `plan`, quando há mais contexto coletado.

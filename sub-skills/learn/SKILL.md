@@ -77,14 +77,15 @@ Atualizar a entrada da task no `GDD/knowledge.md` com o formato completo:
 - Se a entrada já existe (de uma execução anterior do learn), mesclar os novos aprendizados com os existentes
 - Se não existe, criar a entrada completa
 
-### 7. Atualizar status para `learned`
+### 7. Marcar task como aprendida
 
 Após gravar a entrada no `knowledge.md`, atualizar `GDD/tasks/{cod-da-task}/status.md`:
 
-- `phase`: `learned`
+- `learned`: `true`
 - `updated_at`: timestamp ISO 8601 em UTC
 - `updated_by`: `learn`
-- `branch`: manter o valor atual
+- **Não alterar `phase`** — continua `packed-up` (ou o que estava). Learn é uma ferramenta ortogonal ao fluxo, não uma fase do ciclo.
+- Preservar `branch` e `prs` intactos.
 
 ### 8. Reportar resultado
 

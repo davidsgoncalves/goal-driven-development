@@ -13,29 +13,49 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
+### 0. Verificar se já existe instalação anterior
+
+Antes de qualquer coisa, verificar se `GDD/` já existe no diretório raiz.
+
+- **Se `GDD/` existe e tem `GDD/VERSION` com conteúdo `v2`:** informar que o projeto já está instalado na versão atual e encerrar.
+- **Se `GDD/` existe mas `GDD/VERSION` não existe (ou aponta pra versão anterior):** informar que é uma instalação de versão antiga e sugerir rodar a skill `upgrade` em vez de reinstalar. Não sobrescrever arquivos existentes.
+- **Se `GDD/` não existe:** prosseguir com a instalação.
+
 ### 1. Criar estrutura GDD
 
 No diretório raiz do projeto do usuário, crie a seguinte estrutura:
 
 ```
 GDD/
+├── VERSION
 ├── knowledge.md
-├── pack-up-instructions.md
+├── patterns.md
+├── hooks.md
 └── tasks/
 ```
 
+- `VERSION` — arquivo com conteúdo `v2` (uma linha, sem espaços)
 - `knowledge.md` — criado com template padrão (ver seção abaixo)
-- `pack-up-instructions.md` — criado com template padrão (ver seção abaixo)
+- `patterns.md` — criado com template padrão (ver seção abaixo)
+- `hooks.md` — criado com template padrão (ver seção abaixo)
 - `tasks/` — pasta vazia para armazenar tasks do projeto
 
-### 2. Preencher template do knowledge.md
+### 2. Preencher template do `VERSION`
+
+Conteúdo exato:
+
+```
+v2
+```
+
+### 3. Preencher template do `knowledge.md`
 
 O arquivo `GDD/knowledge.md` deve ser criado com o seguinte template:
 
 ```markdown
 # Knowledge — Registro de Tasks
 
-> Registro de tasks finalizadas com referências de commit e aprendizados. Usado pelo `init` para encontrar tasks semelhantes e pelo `plan` para aproveitar decisões anteriores.
+> Registro de tasks finalizadas com referências de commit e aprendizados. Usado pelo `init` para encontrar tasks semelhantes e pelo `plan` para aproveitar decisões anteriores. **Escrito apenas pela skill `learn`** — nenhuma outra skill modifica este arquivo.
 
 ## Tasks finalizadas
 
@@ -47,60 +67,120 @@ O arquivo `GDD/knowledge.md` deve ser criado com o seguinte template:
 -->
 ```
 
-### 3. Preencher template do pack-up-instructions.md
+### 4. Preencher template do `patterns.md`
 
-O arquivo `GDD/pack-up-instructions.md` deve ser criado com o seguinte template para o usuário preencher:
+O arquivo `GDD/patterns.md` deve ser criado com o seguinte template para o usuário preencher:
 
 ```markdown
-# Pack up instructions
+# Patterns — Convenções do projeto
 
-# Branch inicial
-O branch inicial é [nome do branch]
+> Este arquivo define **apenas os padrões** do projeto: branches, commits e PRs. Lido pelas skills `init` e `pack-up`.
+> Ações executáveis (criar PR em draft, rodar testes, notificar canais, atualizar tickets) ficam no `hooks.md`.
 
-# Padrão de nome de branch
-Aqui descreva o padrão de branch que você quer que seja seguido
-Ex: task/[cod-da-task]/[descrição da task]
+## Branch inicial
+Descreva aqui o branch inicial (ex: `main`, `master`, `develop`).
+Se o repositório contém múltiplos projetos com branches diferentes, liste cada um.
 
-# Padrão de mensagem de commit
-Como você quer que a mensagem de commit seja criada
+Exemplo:
+- projeto-web — `develop`
+- projeto-api — `main`
 
-# Processos de finalização
-Ex: Roda testes XYZ
-Ex: Rodar linter
+## Padrão de nome de branch
+Descreva o padrão esperado para nomes de branches de task.
+Ex: `task/<cod-da-task>/<descrição-em-ingles-kebab-case>`
 
-# Padrão de mensagem de PR
-Descreva como a IA deve criar o título e o corpo do PR
+## Padrão de mensagem de commit
+Descreva o formato esperado do commit (header, body, footer, idioma, tipos permitidos).
 
-# Ações finais
-Criar um PR em draft sem revisores
+## Padrão de mensagem de PR
+Descreva o formato do título e corpo do PR, idioma e seções obrigatórias.
 ```
 
-Após criar, informe ao usuário que ele deve preencher este arquivo com as convenções do projeto.
+### 5. Preencher template do `hooks.md`
 
-### 4. Gitignore (opcional)
+O arquivo `GDD/hooks.md` deve ser criado com o seguinte template:
+
+```markdown
+# Hooks — Pontos de extensão por step
+
+> Cada seção abaixo é um hook opcional. Se você quiser que algo seja executado antes ou depois de um step do fluxo, escreva aqui em linguagem natural — a skill correspondente vai ler e executar.
+> Se não quer nada nesse hook, deixe o valor `skip-hook`.
+>
+> Apenas os steps do fluxo principal têm hooks: `init`, `plan`, `implement`, `pack-up`.
+> Ferramentas auxiliares (`learn`, `update-plan`, `review`, `status`) não têm hooks.
+
+# before init
+skip-hook
+
+# after init
+skip-hook
+
+# before plan
+skip-hook
+
+# after plan
+skip-hook
+
+# before implement
+skip-hook
+
+# after implement
+skip-hook
+
+# before pack-up
+skip-hook
+
+# after pack-up
+skip-hook
+```
+
+Após criar, informe ao usuário que ele deve preencher o `patterns.md` com as convenções do projeto e, opcionalmente, preencher os hooks no `hooks.md`.
+
+### 6. Gitignore (opcional)
 
 Pergunte ao usuário se deseja adicionar a pasta `GDD/` ao `.gitignore` do projeto.
 
 - **Se sim:** adicione `GDD/` ao `.gitignore` existente (ou crie o arquivo se não existir)
 - **Se não:** siga para o próximo passo
 
-### 5. Verificar MCPs opcionais
+### 7. Verificar integrações opcionais
 
-Verifique se o usuário possui os seguintes MCP servers conectados:
+Verifique o que está disponível no ambiente do usuário:
 
-- **Figma** (`claude.ai Figma`) — verificar se está disponível e autenticado
-- **Jira/Atlassian** (`claude.ai Atlassian`) — verificar se está disponível e autenticado
+- **Figma** (`claude.ai Figma` MCP) — verificar se está disponível e autenticado. Melhora `plan` e `implement` com análise de design.
+- **Jira/Atlassian** (`claude.ai Atlassian` MCP) — verificar se está disponível e autenticado. Permite que `plan` busque dados da task automaticamente.
+- **GitHub CLI (`gh`)** — executar `gh --version` e `gh auth status` para verificar instalação e autenticação. É **altamente recomendado** porque:
+  - O `pack-up` usa `gh pr create` para abrir PRs
+  - O `clean-up` usa `gh pr view` para verificar status de merge dos PRs
 
-### 6. Reportar resultado
+Nenhuma dessas integrações é obrigatória, mas sem `gh` a experiência do `pack-up` e do `clean-up` fica degradada (criação manual de PR, verificação manual de merge).
 
-**Se ambos MCPs estiverem conectados:**
-> ✅ Instalação concluída! Estrutura GDD criada e integrações Figma + Jira detectadas.
+### 8. Reportar resultado
 
-**Se algum MCP estiver faltando ou desconectado:**
-> ✅ Instalação concluída! Estrutura GDD criada.
->
-> ⚠️ Para melhor integração, conecte os seguintes MCPs (opcional):
-> - [ ] Figma — [listar se faltando]
-> - [ ] Jira (Atlassian) — [listar se faltando]
->
-> Esses MCPs não são obrigatórios, mas melhoram a experiência com outras skills do GDD.
+Montar a resposta listando o que está ok e o que está faltando:
+
+```
+✅ Instalação v2 concluída! Estrutura GDD criada.
+
+🔌 Integrações:
+  [✓/✗] Figma MCP — {status}
+  [✓/✗] Jira (Atlassian) MCP — {status}
+  [✓/✗] GitHub CLI (gh) — {status}
+
+{Se algum item estiver ✗, sugerir conexão/instalação com link apropriado:}
+  - Figma: conectar MCP em Claude
+  - Jira: conectar MCP em Claude
+  - gh: https://cli.github.com (depois `gh auth login`)
+
+📋 Próximos passos:
+  1. Preencha `GDD/patterns.md` com as convenções do seu projeto
+  2. (Opcional) Preencha slots de `GDD/hooks.md` que você quer customizar
+  3. Rode `init` para iniciar sua primeira task
+```
+
+---
+
+## Guard-rails
+
+- **Esta skill não escreve em `GDD/knowledge.md`** (apenas cria o arquivo vazio com template). Atualizações de conteúdo são responsabilidade exclusiva de `learn`.
+- **Esta skill não sobrescreve instalações existentes.** Se detectar v1 ou v2 já instalada, orienta o usuário a rodar `upgrade` ou nenhuma ação.

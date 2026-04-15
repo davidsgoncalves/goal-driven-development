@@ -62,10 +62,10 @@ Chamar a sub-skill `review --plan` para validar o plano atualizado contra a desc
 
 Atualizar `GDD/tasks/{cod-da-task}/status.md`:
 
-- `phase`: **manter o valor atual** (update-plan não muda a fase da task)
+- `phase`: **preservar o valor atual** (update-plan não muda a fase da task)
 - `updated_at`: timestamp ISO 8601 em UTC
 - `updated_by`: `update-plan`
-- `branch`: manter o valor atual
+- `branch`, `learned`, `prs`: preservar valores atuais
 
 ### 7. Apresentar plano atualizado
 

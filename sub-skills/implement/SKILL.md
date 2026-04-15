@@ -17,6 +17,13 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
+### 0. Executar hook `before implement`
+
+Ler `GDD/hooks.md` e localizar a seção `# before implement`.
+
+- Se o conteúdo for `skip-hook`: pular e seguir para o passo 1.
+- Se houver instruções em linguagem natural: executá-las integralmente antes de prosseguir.
+
 ### 1. Identificar a task
 
 - Se o contexto da conversa já contém o código da task, usar esse código
@@ -36,7 +43,7 @@ Antes de começar a implementação de fato, atualizar `GDD/tasks/{cod-da-task}/
 - `phase`: `implementing`
 - `updated_at`: timestamp ISO 8601 em UTC
 - `updated_by`: `implement`
-- `branch`: manter o valor atual
+- `branch`, `learned`, `prs`: preservar valores atuais
 
 ### 3. Carregar contexto visual (Figma)
 
@@ -65,23 +72,28 @@ Analisar o plano e decidir a estratégia de execução:
 
 ### 5. Implementar
 
-**Sem flag `--code-like-me`:**
-- Seguir o plano de implementação passo a passo
-- Respeitar as convenções do projeto encontradas nos arquivos de configuração
+**Em ambos os modos (com ou sem `--code-like-me`), validar a cadeia completa sempre que aplicável** — ex: frontend → API → backend → banco. Uma feature não está pronta se só um dos lados foi tocado.
 
-**Com flag `--code-like-me`:**
+**Sem flag `--code-like-me` (modo livre, seguindo padrões do projeto):**
+- Seguir o plano de implementação passo a passo
+- Respeitar as convenções do projeto encontradas nos arquivos de configuração (lidos pelo `plan` e refletidos nas considerações técnicas)
+- A IA tem liberdade para escolher a abordagem que achar melhor dentro das convenções, sem precisar replicar estilo dev-por-dev
+- Validar cadeia completa (front → API → back → banco) onde aplicável
+
+**Com flag `--code-like-me` (modo cirúrgico, imitando os devs do projeto):**
 - Aplicar todas as diretrizes da sub-skill `code-like-me` durante a implementação
 - Cada mudança deve ser cirúrgica — mínimo impacto, máxima aderência ao código existente
 - Encontrar analogias no código existente antes de criar algo novo
-- Verificar a cadeia completa (frontend → API → backend → banco) quando aplicável
+- O código produzido deve ser indistinguível do que um dev do projeto escreveria
+- Validar cadeia completa (front → API → back → banco) onde aplicável
 
 ### 6. Verificação pós-implementação
 
 Após implementar:
-- Ler os arquivos alterados para verificar consistência
-- Rodar type-check se o projeto usar TypeScript
-- Rodar linter se disponível
+- Ler os arquivos alterados para verificar consistência e coerência
 - Verificar se todos os passos do plano foram executados
+
+> ℹ️ Esta skill **não roda** type-check, linter, testes ou qualquer outro processo de validação automatizada. Esses processos são configurados pelo usuário nos hooks (`after implement` ou `before pack-up`, conforme preferência) e executados por aqueles hooks.
 
 ### 7. Atualizar status para `implemented`
 
@@ -90,15 +102,23 @@ Após concluir a verificação pós-implementação, atualizar `GDD/tasks/{cod-d
 - `phase`: `implemented`
 - `updated_at`: timestamp ISO 8601 em UTC
 - `updated_by`: `implement`
-- `branch`: manter o valor atual
+- `branch`, `learned`, `prs`: preservar valores atuais
 
-### 8. Reportar resultado
+### 8. Executar hook `after implement`
+
+Ler `GDD/hooks.md` e localizar a seção `# after implement`.
+
+- Se o conteúdo for `skip-hook`: pular e seguir para o passo 9.
+- Se houver instruções em linguagem natural: executá-las integralmente antes do relatório final.
+
+### 9. Reportar resultado
 
 Apresentar ao usuário:
 - Resumo do que foi implementado
 - Arquivos criados ou modificados
 - Se usou subagents, listar o que cada um fez
 - Pendências ou pontos de atenção (se houver)
+- Se hooks before/after foram executados, listar resumidamente o que rodou
 
 ---
 
