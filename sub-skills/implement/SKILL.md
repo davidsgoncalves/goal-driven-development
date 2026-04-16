@@ -1,17 +1,17 @@
 ---
 name: implement
 description: |
-  Executa o plano de implementação da task, criando subagents para tasks complexas ou executando diretamente para tasks simples. Suporta flag --code-like-me para implementação cirúrgica. Use quando o usuário mencionar: "implementar task", "implement", "executar plano", ou quando a fase de implementação for ativada pelo GOD.
+  Executa o plano de implementação da task, criando subagents para tasks complexas ou executando diretamente para tasks simples. Por padrão aplica `code-like-me` (modo cirúrgico); use `--skip-code-like-me` para desativar. Use quando o usuário mencionar: "implementar task", "implement", "executar plano", ou quando a fase de implementação for ativada pelo GOD.
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
 # Implement — Sub-skill de Implementação
 
-> Executa o plano de implementação da task, criando subagents para tasks complexas ou executando diretamente para tasks simples. Suporta flag `--code-like-me` para implementação cirúrgica.
+> Executa o plano de implementação da task, criando subagents para tasks complexas ou executando diretamente para tasks simples. **Por padrão aplica `code-like-me`** (modo cirúrgico, imitando os devs do projeto). Use `--skip-code-like-me` para desativar.
 
 ## Flags
 
-- `--code-like-me` — Ativa a sub-skill `code-like-me` para garantir que o código implementado siga exatamente os padrões e convenções do projeto existente. Quando ativa, cada passo de implementação deve seguir as diretrizes da skill `code-like-me`.
+- `--skip-code-like-me` — Desativa a aplicação da sub-skill `code-like-me`. Nesse modo livre, a IA segue o plano e as convenções do projeto, mas tem liberdade para escolher a abordagem sem precisar replicar estilo dev-por-dev. **Sem esta flag, `code-like-me` é aplicado automaticamente.**
 
 ## Instruções
 
@@ -72,19 +72,19 @@ Analisar o plano e decidir a estratégia de execução:
 
 ### 5. Implementar
 
-**Em ambos os modos (com ou sem `--code-like-me`), validar a cadeia completa sempre que aplicável** — ex: frontend → API → backend → banco. Uma feature não está pronta se só um dos lados foi tocado.
+**Em ambos os modos, validar a cadeia completa sempre que aplicável** — ex: frontend → API → backend → banco. Uma feature não está pronta se só um dos lados foi tocado.
 
-**Sem flag `--code-like-me` (modo livre, seguindo padrões do projeto):**
-- Seguir o plano de implementação passo a passo
-- Respeitar as convenções do projeto encontradas nos arquivos de configuração (lidos pelo `plan` e refletidos nas considerações técnicas)
-- A IA tem liberdade para escolher a abordagem que achar melhor dentro das convenções, sem precisar replicar estilo dev-por-dev
-- Validar cadeia completa (front → API → back → banco) onde aplicável
-
-**Com flag `--code-like-me` (modo cirúrgico, imitando os devs do projeto):**
+**Modo padrão — `code-like-me` ativo (cirúrgico, imitando os devs do projeto):**
 - Aplicar todas as diretrizes da sub-skill `code-like-me` durante a implementação
 - Cada mudança deve ser cirúrgica — mínimo impacto, máxima aderência ao código existente
 - Encontrar analogias no código existente antes de criar algo novo
 - O código produzido deve ser indistinguível do que um dev do projeto escreveria
+- Validar cadeia completa (front → API → back → banco) onde aplicável
+
+**Com flag `--skip-code-like-me` (modo livre, seguindo padrões do projeto):**
+- Seguir o plano de implementação passo a passo
+- Respeitar as convenções do projeto encontradas nos arquivos de configuração (lidos pelo `plan` e refletidos nas considerações técnicas)
+- A IA tem liberdade para escolher a abordagem que achar melhor dentro das convenções, sem precisar replicar estilo dev-por-dev
 - Validar cadeia completa (front → API → back → banco) onde aplicável
 
 ### 6. Verificação pós-implementação

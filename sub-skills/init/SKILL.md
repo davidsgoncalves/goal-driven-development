@@ -1,7 +1,7 @@
 ---
 name: init
 description: |
-  Cria a estrutura de uma nova task no projeto: branch, pasta em `GOD/tasks/` e os arquivos `description.md` (com o input bruto do usuário), `plan.md` (vazio) e `status.md` (fase `initialized`). Não busca dados no Jira, não consulta knowledge, não faz Q&A — isso é responsabilidade da skill `plan`. Use quando o usuário mencionar: "nova task", "iniciar task", "init", "criar task", ou quando a fase de inicialização for ativada pelo GOD.
+  Cria a estrutura de uma nova task no projeto: branch (single-project) ou delegação para `plan` (multi-project), pasta em `GOD/tasks/` e os arquivos `description.md` (com o input bruto do usuário), `plan.md` (vazio) e `status.md` (fase `initialized`). Não busca dados no Jira, não consulta knowledge, não faz Q&A — isso é responsabilidade da skill `plan`. Use quando o usuário mencionar: "nova task", "iniciar task", "init", "criar task", ou quando a fase de inicialização for ativada pelo GOD.
 tools: Read, Glob, Grep, Bash, Edit, Write
 ---
 
@@ -33,16 +33,26 @@ Ler `GOD/hooks.md` e localizar a seção `# before init`.
 - Se o conteúdo for `skip-hook`: pular e seguir para o passo 1.
 - Se houver instruções em linguagem natural: executá-las integralmente antes de prosseguir. Se as instruções falharem ou pedirem confirmação, pausar e consultar o usuário.
 
-### 1. Ler convenções de branch no `patterns.md`
+### 1. Detectar contexto: single-project vs multi-project workspace
+
+Antes de ler convenções, identificar se o diretório atual é um projeto único ou um workspace com múltiplos projetos:
+
+- Executar `git rev-parse --show-toplevel` no diretório atual.
+  - **Se o comando sucede** e retorna um caminho: é um repositório git (single-project). Seguir o fluxo normal de branch nesta skill.
+  - **Se o comando falha** (erro "not a git repository"): o diretório atual é um workspace (ex: pasta que contém múltiplos projetos, cada um com seu próprio `.git`). **Modo multi-project ativo.**
+
+No **modo multi-project**, o `init` não tem contexto suficiente para decidir em qual(is) projeto(s) o branch da task deve ser criado — isso depende do escopo da task, que só fica claro após o enriquecimento (Jira, Figma, Q&A). Portanto, **pular toda a lógica de git (passo 4)** e delegar a organização de branches para a skill `plan`. Continuar executando os demais passos normalmente, porém com `branch: null` em `status.md`.
+
+### 2. Ler convenções de branch no `patterns.md`
 
 Ler `GOD/patterns.md` e extrair:
 
-- **Branch inicial** — nome do branch base. Se o repositório contém múltiplos projetos com branches diferentes, identificar qual aplica ao projeto corrente (pelo diretório ou perguntando ao usuário).
+- **Branch inicial** — nome do branch base. Se o repositório contém múltiplos projetos com branches diferentes, identificar qual aplica ao projeto corrente (pelo diretório ou perguntando ao usuário). No modo multi-project, esta informação é apenas lida para referência — o `plan` usará para criar branches depois.
 - **Padrão de nome de branch** — formato a ser seguido ao criar o branch da task (ex: `task/<cod-da-task>/<descrição-kebab-case>`).
 
-Esses dois valores são obrigatórios para os passos 3 (criação do branch).
+No modo single-project, esses valores são obrigatórios para o passo 4. No modo multi-project, apenas o **padrão de nome de branch** é necessário aqui (o branch inicial por projeto será relido pelo `plan`).
 
-### 2. Receber input da task
+### 3. Receber input da task
 
 O usuário deve fornecer **uma** das seguintes opções:
 
@@ -50,13 +60,15 @@ O usuário deve fornecer **uma** das seguintes opções:
 - **Código da task** — ex: `PROJ-123` → usar direto
 - **Nome/descrição manual** — texto livre. Neste caso, pedir ao usuário um código ou nome curto para identificar a task (ex: `minha-task`)
 
-Se o padrão de branch (passo 1) exige um segmento de descrição (ex: `<descrição-kebab-case>`) e o input do usuário não fornece algo claro, perguntar ao usuário uma descrição curta para compor o nome do branch.
+Se o padrão de branch (passo 2) exige um segmento de descrição (ex: `<descrição-kebab-case>`) e o input do usuário não fornece algo claro, perguntar ao usuário uma descrição curta para compor o nome do branch.
 
 **Não buscar dados no Jira nesta skill.** Apenas capturar o input. A skill `plan` fará o fetch do Jira quando for elaborar o plano.
 
-### 3. Verificar estado do git e criar o branch da task
+### 4. Verificar estado do git e criar o branch da task
 
-Com o branch inicial e o padrão de nome de branch (passo 1) e o cod-da-task + descrição (passo 2) em mãos:
+> **Pular este passo inteiro se o modo multi-project foi detectado no passo 1.** A criação dos branches nos projetos afetados será feita pela skill `plan` após o enriquecimento da descrição.
+
+Com o branch inicial e o padrão de nome de branch (passo 2) e o cod-da-task + descrição (passo 3) em mãos:
 
 1. Verificar se o usuário está no branch inicial (`git branch --show-current`)
 2. Verificar se existem alterações não commitadas (`git status`)
@@ -78,11 +90,11 @@ Com o branch inicial e o padrão de nome de branch (passo 1) e o cod-da-task + d
 > 3. **Abortar** — cancela o init sem fazer nada
 
 Aguardar a escolha do usuário e agir conforme:
-- **Opção 1:** `git checkout -- .` + `git checkout {branch-inicial}` + `git pull` + criar branch da task aplicando o **padrão de nome de branch** lido no passo 1
-- **Opção 2:** pular para o passo 4 (criar estrutura sem mexer no git) e encerrar após criar as pastas
+- **Opção 1:** `git checkout -- .` + `git checkout {branch-inicial}` + `git pull` + criar branch da task aplicando o **padrão de nome de branch** lido no passo 2
+- **Opção 2:** pular para o passo 5 (criar estrutura sem mexer no git) e encerrar após criar as pastas
 - **Opção 3:** encerrar sem executar nada
 
-### 4. Criar estrutura da task
+### 5. Criar estrutura da task
 
 Criar a seguinte estrutura em `GOD/tasks/`:
 
@@ -129,27 +141,27 @@ prs: []
 - `phase`: sempre `initialized` neste passo
 - `updated_at`: timestamp ISO 8601 em UTC (ex: `2026-04-15T14:30:00Z`)
 - `updated_by`: sempre `init` neste passo
-- `branch`: nome do branch criado no passo 3. Se o usuário escolheu a opção 2 ("Criar apenas as pastas"), deixar `null`.
+- `branch`: nome do branch criado no passo 4 (single-project). Deixar `null` se: (a) o usuário escolheu a opção 2 ("Criar apenas as pastas"), ou (b) o modo multi-project foi detectado no passo 1 — nesse caso o `plan` vai popular este campo ao organizar os branches.
 - `learned`: sempre `false` neste passo. Será flipado para `true` pela skill `learn` quando o usuário escolher transformar a task em conhecimento.
 - `prs`: sempre `[]` neste passo. Será populado pela skill `pack-up` a cada PR criado.
 
-### 5. Executar hook `after init`
+### 6. Executar hook `after init`
 
 Ler `GOD/hooks.md` e localizar a seção `# after init`.
 
-- Se o conteúdo for `skip-hook`: pular e seguir para o passo 6.
+- Se o conteúdo for `skip-hook`: pular e seguir para o passo 7.
 - Se houver instruções em linguagem natural: executá-las integralmente antes do relatório final.
 
-### 6. Reportar resultado
+### 7. Reportar resultado
 
 > ✅ Task `{cod-da-task}` inicializada!
 >
-> 🌿 Branch: `{nome-do-branch}` (ou "não criado" se opção 2)
+> 🌿 Branch: `{nome-do-branch}` (ou "não criado" se opção 2, ou "será organizado pelo `plan`" se modo multi-project)
 > 📄 `GOD/tasks/{cod-da-task}/description.md` — input bruto salvo (aguardando enriquecimento pelo `plan`)
 > 📋 `GOD/tasks/{cod-da-task}/plan.md` — aguardando planejamento
 > 📍 `GOD/tasks/{cod-da-task}/status.md` — fase: `initialized`
 >
-> 💡 Próximo passo: rode `plan` — ela vai buscar dados no Jira, consultar knowledge, fazer Q&A com você e então escrever o plano de implementação.
+> 💡 Próximo passo: rode `plan` — ela vai buscar dados no Jira, consultar knowledge, fazer Q&A com você e então escrever o plano de implementação. [Em modo multi-project: o `plan` também vai criar os branches nos projetos afetados após entender o escopo.]
 >
 > [Se hooks before/after foram executados, listar resumidamente o que rodou]
 

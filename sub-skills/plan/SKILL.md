@@ -1,7 +1,7 @@
 ---
 name: plan
 description: |
-  Enriquece a descrição da task (Jira, Figma, knowledge, Q&A) e escreve o plano de implementação. Busca dados em sistemas externos e consulta histórico antes de planejar. Use quando o usuário mencionar: "planejar task", "criar plano", "plan", ou quando a fase de planejamento for ativada pelo GOD.
+  Enriquece a descrição da task (Jira, Figma, knowledge, Q&A), escreve o plano de implementação e, em workspaces multi-project, organiza os branches nos projetos afetados. Busca dados em sistemas externos e consulta histórico antes de planejar. Use quando o usuário mencionar: "planejar task", "criar plano", "plan", ou quando a fase de planejamento for ativada pelo GOD.
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
@@ -149,18 +149,45 @@ Após escrever o plano, chamar a sub-skill `review --plan` passando o código da
 - Se o relatório retornar **Ajustes necessários**: avaliar as correções sugeridas, aplicar as pertinentes no `plan.md` e apresentar o plano corrigido ao usuário
 - Se o relatório retornar **Reprovado**: reescrever o plano com base no feedback e rodar a review novamente
 
-### 12. Atualizar status
+### 12. Organizar branches (modo multi-project)
+
+Ler `GOD/tasks/{cod-da-task}/status.md`. **Se `branch` é `null`**, isso significa que o `init` detectou um workspace multi-project e delegou a organização de branches para esta skill. Executar:
+
+1. **Identificar projetos afetados** — a partir do plano escrito no passo 10, listar os diretórios de projeto que serão modificados (ex: `projeto-api`, `projeto-web`). Se houver ambiguidade, perguntar ao usuário antes de prosseguir.
+2. **Ler `GOD/patterns.md`** para obter:
+   - Branch inicial de cada projeto (seção "Branch inicial", que no modo multi-project lista cada projeto)
+   - Padrão de nome de branch
+3. **Para cada projeto afetado**, executar a mesma lógica de git do `init` (passo 4 do `init`):
+   - `cd` no diretório do projeto
+   - `git branch --show-current` + `git status`
+   - Se branch correto e limpo: `git pull` + criar branch da task aplicando o padrão
+   - Se há pendências: apresentar ao usuário as 3 opções (Reverter e continuar / Pular este projeto / Abortar)
+   - Se pull falhar: avisar o usuário e aguardar orientação
+4. **Registrar os branches criados** — salvar a lista no `status.md` no passo 13.
+
+Se `branch` **não é `null`** (modo single-project, branch já criado pelo `init`), pular este passo.
+
+### 13. Atualizar status
 
 Após a review ser aprovada (e o usuário validar o plano), atualizar `GOD/tasks/{cod-da-task}/status.md`:
 
 - `phase`: `planned`
 - `updated_at`: timestamp ISO 8601 em UTC
 - `updated_by`: `plan`
-- `branch`: preservar o valor atual
+- `branch`:
+  - **Single-project** (valor já era string): preservar o valor atual.
+  - **Multi-project** (valor era `null` e branches foram criados no passo 12): gravar como lista de objetos, um por projeto afetado:
+    ```yaml
+    branch:
+      - project: projeto-api
+        name: task/PROJ-123/add-phone-field
+      - project: projeto-web
+        name: task/PROJ-123/add-phone-field
+    ```
 - `learned`: preservar o valor atual
 - `prs`: preservar o valor atual
 
-### 13. Executar hook `after plan`
+### 14. Executar hook `after plan`
 
 Ler `GOD/hooks.md` e localizar a seção `# after plan`.
 
@@ -173,3 +200,4 @@ Ler `GOD/hooks.md` e localizar a seção `# after plan`.
 
 - **Esta skill não escreve em `GOD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo. Aqui, o knowledge é apenas **lido** para encontrar tasks semelhantes (passo 4).
 - **Esta skill é a dona do enriquecimento da `description.md`.** O `init` cria o arquivo bruto; o `plan` enriquece. Outras skills não devem reescrever a descrição.
+- **Esta skill organiza branches em modo multi-project.** Quando o `init` detecta um workspace (pasta sem `.git` que contém múltiplos projetos), ele deixa `status.branch = null` e delega a criação dos branches para o `plan` (passo 12), que tem contexto suficiente do escopo após o enriquecimento e o plano escrito.

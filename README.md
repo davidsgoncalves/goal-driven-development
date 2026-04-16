@@ -19,11 +19,11 @@ install -> init -> plan -> implement -> pack-up
 
 1. **install** — Configura o projeto. Cria a pasta `GOD/`, arquivo `VERSION`, templates de `knowledge.md`, `patterns.md` e `hooks.md`. Verifica MCPs opcionais (Figma, Jira). Executar apenas uma vez.
 
-2. **init** — Inicializa uma task. Recebe link do Jira, codigo da task ou descricao manual. Busca dados no Jira, coleta links do Figma, consulta knowledge por tasks semelhantes, faz Q&A com o usuario e salva tudo em `description.md`.
+2. **init** — Inicializa uma task. Recebe link do Jira, codigo da task ou descricao manual. Detecta se o diretorio atual e um projeto unico (ha `.git`) ou um workspace multi-project (pasta sem `.git` que contem multiplos projetos) — neste caso, delega a criacao dos branches para o `plan`. Salva o input bruto em `description.md`.
 
-3. **plan** — Cria o plano de implementacao. Analisa a descricao, commits de referencia, design do Figma, arquivos de convencao do projeto (`CLAUDE.md`, `ARCHITECTURE.md`, `AGENTS.md`), tira duvidas e escreve o plano. Roda review automatica antes de finalizar.
+3. **plan** — Cria o plano de implementacao. Analisa a descricao, commits de referencia, design do Figma, arquivos de convencao do projeto (`CLAUDE.md`, `ARCHITECTURE.md`, `AGENTS.md`), tira duvidas e escreve o plano. Roda review automatica antes de finalizar. **Em workspaces multi-project**, tambem organiza os branches nos projetos afetados apos o plano estar pronto.
 
-4. **implement** — Executa o plano. Tasks simples sao executadas diretamente. Tasks complexas sao divididas em subagents paralelos. Suporta flag `--code-like-me` para implementacao cirurgica que segue exatamente os padroes do projeto.
+4. **implement** — Executa o plano. Tasks simples sao executadas diretamente. Tasks complexas sao divididas em subagents paralelos. **Por padrao aplica `code-like-me`** (implementacao cirurgica que segue exatamente os padroes do projeto). Use `--skip-code-like-me` para desativar.
 
 5. **pack-up** — Finaliza a task. Roda review plano vs execucao, commit, push e cria PR seguindo os padroes definidos em `patterns.md`. Acoes executaveis (marcar PR como draft, adicionar labels, notificar canais, atualizar tickets) ficam nos hooks `before pack-up` e `after pack-up`. **Nao escreve no knowledge** — isso e responsabilidade exclusiva da skill `learn`.
 

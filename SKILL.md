@@ -21,7 +21,7 @@ install → init → plan → implement → pack-up
 1. **install** — Configura o projeto (executar apenas uma vez)
 2. **init** — Inicializa uma nova task (cria estrutura, coleta dados do Jira/Figma, Q&A com usuário)
 3. **plan** — Cria o plano de implementação (analisa contexto, tira dúvidas, escreve plano, revisa)
-4. **implement** — Executa o plano (subagents para tasks complexas, flag `--code-like-me` para código cirúrgico)
+4. **implement** — Executa o plano (subagents para tasks complexas; `code-like-me` aplicado por padrão, use `--skip-code-like-me` para desativar)
 5. **pack-up** — Finaliza a task (review, commit, push, PR)
 
 **Ferramentas auxiliares (não são parte do fluxo linear):**
@@ -179,7 +179,7 @@ Seu projeto está configurado. Para iniciar sua primeira task:
    → Consulta Figma, commits anteriores, arquitetura do projeto
 
 3. `implement` — Executa o plano
-   → Use `--code-like-me` para código que segue exatamente os padrões do projeto
+   → Por padrão aplica `code-like-me` (código cirúrgico que imita os devs do projeto). Use `--skip-code-like-me` para desativar.
 
 4. `pack-up` — Finaliza e entrega
    → Review, commit, push, PR — tudo automático
