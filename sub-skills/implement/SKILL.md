@@ -1,7 +1,7 @@
 ---
 name: implement
 description: |
-  Executa o plano de implementação da task, criando subagents para tasks complexas ou executando diretamente para tasks simples. Suporta flag --code-like-me para implementação cirúrgica. Use quando o usuário mencionar: "implementar task", "implement", "executar plano", ou quando a fase de implementação for ativada pelo GDD.
+  Executa o plano de implementação da task, criando subagents para tasks complexas ou executando diretamente para tasks simples. Suporta flag --code-like-me para implementação cirúrgica. Use quando o usuário mencionar: "implementar task", "implement", "executar plano", ou quando a fase de implementação for ativada pelo GOD.
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
@@ -19,7 +19,7 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 0. Executar hook `before implement`
 
-Ler `GDD/hooks.md` e localizar a seção `# before implement`.
+Ler `GOD/hooks.md` e localizar a seção `# before implement`.
 
 - Se o conteúdo for `skip-hook`: pular e seguir para o passo 1.
 - Se houver instruções em linguagem natural: executá-las integralmente antes de prosseguir.
@@ -31,14 +31,14 @@ Ler `GDD/hooks.md` e localizar a seção `# before implement`.
 
 ### 2. Ler o plano
 
-Ler o arquivo `GDD/tasks/{cod-da-task}/plan.md` para obter o plano de implementação.
+Ler o arquivo `GOD/tasks/{cod-da-task}/plan.md` para obter o plano de implementação.
 
 - Se o plano estiver vazio, informar o usuário que precisa rodar a skill `plan` antes
 - Se o plano existir, analisar sua estrutura e complexidade
 
 ### 2.1. Atualizar status para `implementing`
 
-Antes de começar a implementação de fato, atualizar `GDD/tasks/{cod-da-task}/status.md`:
+Antes de começar a implementação de fato, atualizar `GOD/tasks/{cod-da-task}/status.md`:
 
 - `phase`: `implementing`
 - `updated_at`: timestamp ISO 8601 em UTC
@@ -47,7 +47,7 @@ Antes de começar a implementação de fato, atualizar `GDD/tasks/{cod-da-task}/
 
 ### 3. Carregar contexto visual (Figma)
 
-Ler o `GDD/tasks/{cod-da-task}/description.md` e verificar se há links do Figma.
+Ler o `GOD/tasks/{cod-da-task}/description.md` e verificar se há links do Figma.
 
 Se houver links do Figma:
 - Acessar o Figma via MCP Figma (`get_design_context`) para cada link
@@ -97,7 +97,7 @@ Após implementar:
 
 ### 7. Atualizar status para `implemented`
 
-Após concluir a verificação pós-implementação, atualizar `GDD/tasks/{cod-da-task}/status.md`:
+Após concluir a verificação pós-implementação, atualizar `GOD/tasks/{cod-da-task}/status.md`:
 
 - `phase`: `implemented`
 - `updated_at`: timestamp ISO 8601 em UTC
@@ -106,7 +106,7 @@ Após concluir a verificação pós-implementação, atualizar `GDD/tasks/{cod-d
 
 ### 8. Executar hook `after implement`
 
-Ler `GDD/hooks.md` e localizar a seção `# after implement`.
+Ler `GOD/hooks.md` e localizar a seção `# after implement`.
 
 - Se o conteúdo for `skip-hook`: pular e seguir para o passo 9.
 - Se houver instruções em linguagem natural: executá-las integralmente antes do relatório final.
@@ -124,4 +124,4 @@ Apresentar ao usuário:
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
+- **Esta skill não escreve em `GOD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.

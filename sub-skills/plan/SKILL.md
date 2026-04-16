@@ -1,7 +1,7 @@
 ---
 name: plan
 description: |
-  Enriquece a descrição da task (Jira, Figma, knowledge, Q&A) e escreve o plano de implementação. Busca dados em sistemas externos e consulta histórico antes de planejar. Use quando o usuário mencionar: "planejar task", "criar plano", "plan", ou quando a fase de planejamento for ativada pelo GDD.
+  Enriquece a descrição da task (Jira, Figma, knowledge, Q&A) e escreve o plano de implementação. Busca dados em sistemas externos e consulta histórico antes de planejar. Use quando o usuário mencionar: "planejar task", "criar plano", "plan", ou quando a fase de planejamento for ativada pelo GOD.
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
@@ -15,7 +15,7 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 0. Executar hook `before plan`
 
-Ler `GDD/hooks.md` e localizar a seção `# before plan`.
+Ler `GOD/hooks.md` e localizar a seção `# before plan`.
 
 - Se o conteúdo for `skip-hook`: pular e seguir para o passo 1.
 - Se houver instruções em linguagem natural: executá-las integralmente antes de prosseguir.
@@ -27,7 +27,7 @@ Ler `GDD/hooks.md` e localizar a seção `# before plan`.
 
 ### 2. Ler descrição atual
 
-Ler o arquivo `GDD/tasks/{cod-da-task}/description.md` para obter o input bruto salvo pelo `init`.
+Ler o arquivo `GOD/tasks/{cod-da-task}/description.md` para obter o input bruto salvo pelo `init`.
 
 A descrição pode estar em dois estados:
 - **Bruta** (apenas input do usuário, como saída do `init`) — prosseguir com enriquecimento nos passos 3-6
@@ -48,7 +48,7 @@ Se o input bruto é apenas texto manual (sem código Jira), pular este passo.
 
 ### 4. Consultar knowledge por tasks semelhantes
 
-Ler o arquivo `GDD/knowledge.md`. Verificar se existem tasks anteriores com contexto semelhante à task atual.
+Ler o arquivo `GOD/knowledge.md`. Verificar se existem tasks anteriores com contexto semelhante à task atual.
 
 Se encontrar tasks semelhantes, guardar:
 - **Códigos de commit** (hash1, hash2, ...) — para análise de referência no passo 5
@@ -106,7 +106,7 @@ Diretrizes:
 
 ### 9. Atualizar `description.md` com conteúdo enriquecido
 
-Reescrever `GDD/tasks/{cod-da-task}/description.md` com o conteúdo completo:
+Reescrever `GOD/tasks/{cod-da-task}/description.md` com o conteúdo completo:
 
 ```markdown
 # {cod-da-task} — {título}
@@ -133,7 +133,7 @@ O input bruto original do usuário (conforme salvo pelo `init`) pode ser descart
 
 ### 10. Escrever plano de implementação
 
-Preencher o arquivo `GDD/tasks/{cod-da-task}/plan.md` com o plano de implementação contendo:
+Preencher o arquivo `GOD/tasks/{cod-da-task}/plan.md` com o plano de implementação contendo:
 
 - Resumo do que será feito
 - Arquivos que serão criados ou modificados
@@ -151,7 +151,7 @@ Após escrever o plano, chamar a sub-skill `review --plan` passando o código da
 
 ### 12. Atualizar status
 
-Após a review ser aprovada (e o usuário validar o plano), atualizar `GDD/tasks/{cod-da-task}/status.md`:
+Após a review ser aprovada (e o usuário validar o plano), atualizar `GOD/tasks/{cod-da-task}/status.md`:
 
 - `phase`: `planned`
 - `updated_at`: timestamp ISO 8601 em UTC
@@ -162,7 +162,7 @@ Após a review ser aprovada (e o usuário validar o plano), atualizar `GDD/tasks
 
 ### 13. Executar hook `after plan`
 
-Ler `GDD/hooks.md` e localizar a seção `# after plan`.
+Ler `GOD/hooks.md` e localizar a seção `# after plan`.
 
 - Se o conteúdo for `skip-hook`: encerrar.
 - Se houver instruções em linguagem natural: executá-las integralmente antes de encerrar.
@@ -171,5 +171,5 @@ Ler `GDD/hooks.md` e localizar a seção `# after plan`.
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo. Aqui, o knowledge é apenas **lido** para encontrar tasks semelhantes (passo 4).
+- **Esta skill não escreve em `GOD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo. Aqui, o knowledge é apenas **lido** para encontrar tasks semelhantes (passo 4).
 - **Esta skill é a dona do enriquecimento da `description.md`.** O `init` cria o arquivo bruto; o `plan` enriquece. Outras skills não devem reescrever a descrição.

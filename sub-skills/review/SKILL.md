@@ -1,7 +1,7 @@
 ---
 name: review
 description: |
-  Revisa a qualidade do trabalho em dois modos: comparando descrição com plano, ou comparando plano com execução. Retorna relatórios para a skill chamadora avaliar e corrigir. Use quando o usuário mencionar: "revisar", "review", "checar qualidade", ou quando ativada automaticamente pelo GDD.
+  Revisa a qualidade do trabalho em dois modos: comparando descrição com plano, ou comparando plano com execução. Retorna relatórios para a skill chamadora avaliar e corrigir. Use quando o usuário mencionar: "revisar", "review", "checar qualidade", ou quando ativada automaticamente pelo GOD.
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
@@ -18,8 +18,8 @@ Chamada pela skill `plan` após escrever o plano de implementação.
 **Objetivo:** Garantir que o plano cobre tudo que a descrição da task pede, sem excessos nem lacunas.
 
 **Passos:**
-1. Ler `GDD/tasks/{cod-da-task}/description.md`
-2. Ler `GDD/tasks/{cod-da-task}/plan.md`
+1. Ler `GOD/tasks/{cod-da-task}/description.md`
+2. Ler `GOD/tasks/{cod-da-task}/plan.md`
 3. Comparar os dois e gerar relatório
 
 **Critérios de revisão:**
@@ -60,7 +60,7 @@ Chamada pela skill `pack-up` antes de finalizar.
 **Objetivo:** Garantir que a implementação executou fielmente o que o plano definiu.
 
 **Passos:**
-1. Ler `GDD/tasks/{cod-da-task}/plan.md`
+1. Ler `GOD/tasks/{cod-da-task}/plan.md`
 2. Analisar o diff das alterações no git (`git diff` do branch da task vs branch inicial)
 3. Comparar o que foi planejado com o que foi efetivamente implementado
 
@@ -106,5 +106,5 @@ Chamada pela skill `pack-up` antes de finalizar.
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
+- **Esta skill não escreve em `GOD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
 - **Esta skill não altera `status.md`.** Mudança de fase é responsabilidade da skill chamadora.

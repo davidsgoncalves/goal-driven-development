@@ -1,10 +1,10 @@
-# GDD — Goal Driven Development
+# GOD — Goal Oriented Development
 
 Meta framework de skills para desenvolvimento orientado a objetivos. Orquestra o ciclo de vida completo de uma task — da coleta de requisitos até a entrega do PR — usando sub-skills especializadas que se comunicam entre si.
 
 ## Como funciona
 
-O GDD cria uma camada de gestao por cima do seu projeto. Ao instalar, ele gera uma pasta `GDD/` que armazena o estado de cada task: descricao, plano, status, knowledge acumulado, convencoes e hooks.
+O GOD cria uma camada de gestao por cima do seu projeto. Ao instalar, ele gera uma pasta `GOD/` que armazena o estado de cada task: descricao, plano, status, knowledge acumulado, convencoes e hooks.
 
 Cada etapa do desenvolvimento e coberta por uma sub-skill dedicada. A skill orquestradora sabe qual chamar, verifica pre-requisitos e sugere o proximo passo.
 
@@ -17,7 +17,7 @@ install -> init -> plan -> implement -> pack-up
                  (plan)  (update)   (execution)
 ```
 
-1. **install** — Configura o projeto. Cria a pasta `GDD/`, arquivo `VERSION`, templates de `knowledge.md`, `patterns.md` e `hooks.md`. Verifica MCPs opcionais (Figma, Jira). Executar apenas uma vez.
+1. **install** — Configura o projeto. Cria a pasta `GOD/`, arquivo `VERSION`, templates de `knowledge.md`, `patterns.md` e `hooks.md`. Verifica MCPs opcionais (Figma, Jira). Executar apenas uma vez.
 
 2. **init** — Inicializa uma task. Recebe link do Jira, codigo da task ou descricao manual. Busca dados no Jira, coleta links do Figma, consulta knowledge por tasks semelhantes, faz Q&A com o usuario e salva tudo em `description.md`.
 
@@ -34,14 +34,14 @@ install -> init -> plan -> implement -> pack-up
 | **review** | Revisao automatica em 2 modos: descricao vs plano (`--plan`) e plano vs execucao (`--execution`). Gera relatorios sem corrigir — a skill chamadora decide. |
 | **status** | Dashboard que mostra todas as tasks, em qual fase cada uma esta, branch, se foi aprendida e quantos PRs tem. |
 | **update-plan** | Permite alterar o plano durante a implementacao. Mantem historico de alteracoes e roda review apos atualizar. |
-| **learn** | Transforma uma task executada em conhecimento reutilizavel. **Unica skill autorizada a escrever em `GDD/knowledge.md`**. Ativada explicitamente pelo usuario apos o pack-up. Marca `learned: true` no `status.md` sem alterar `phase`. |
-| **clean-up** | Verifica tasks em `packed-up` cujos PRs ja foram mergiados e arquiva suas pastas em `GDD/tasks/.archived/`. Oferece rodar `learn` antes de arquivar tasks ainda nao aprendidas. Requer `gh` CLI. |
+| **learn** | Transforma uma task executada em conhecimento reutilizavel. **Unica skill autorizada a escrever em `GOD/knowledge.md`**. Ativada explicitamente pelo usuario apos o pack-up. Marca `learned: true` no `status.md` sem alterar `phase`. |
+| **clean-up** | Verifica tasks em `packed-up` cujos PRs ja foram mergiados e arquiva suas pastas em `GOD/tasks/.archived/`. Oferece rodar `learn` antes de arquivar tasks ainda nao aprendidas. Requer `gh` CLI. |
 | **code-like-me** | Implementacao cirurgica. Garante que o codigo escrito e indistinguivel do codigo existente no projeto. Usado como flag do implement. |
-| **upgrade** | Migra instalacoes do GDD entre versoes (ex: v1 -> v2). Expansivel: cada bump de versao adiciona um arquivo em `sub-skills/upgrade/migrations/`. |
+| **upgrade** | Migra instalacoes do GOD entre versoes (ex: v1 -> v2 -> v3). Expansivel: cada bump de versao adiciona um arquivo em `sub-skills/upgrade/migrations/`. |
 
 ## Hooks do fluxo
 
-Cada step do fluxo principal (`init`, `plan`, `implement`, `pack-up`) executa hooks opcionais antes e depois de sua logica principal. Os hooks sao lidos de `GDD/hooks.md` e escritos em linguagem natural.
+Cada step do fluxo principal (`init`, `plan`, `implement`, `pack-up`) executa hooks opcionais antes e depois de sua logica principal. Os hooks sao lidos de `GOD/hooks.md` e escritos em linguagem natural.
 
 Se o slot esta com `skip-hook`, a skill pula. Se tem instrucoes, a skill executa.
 
@@ -55,7 +55,7 @@ Exemplos de uso:
 ## Estrutura do projeto
 
 ```
-GDD/
+GOD/
 ├── SKILL.md                             # Orquestradora principal
 ├── README.md
 └── sub-skills/
@@ -73,14 +73,15 @@ GDD/
     └── upgrade/
         ├── SKILL.md                     # Orquestrador de migracoes
         └── migrations/
-            └── v1-to-v2.md              # Tutorial v1 -> v2
+            ├── v1-to-v2.md              # Tutorial v1 -> v2
+            └── v2-to-v3.md              # Tutorial v2 -> v3 (GDD -> GOD rename)
 ```
 
 ## Estrutura gerada no projeto do usuario (apos install)
 
 ```
-GDD/
-├── VERSION                 # Versao instalada (atualmente v2)
+GOD/
+├── VERSION                 # Versao instalada (atualmente v3)
 ├── knowledge.md            # Registro de tasks finalizadas — escrito apenas pela skill `learn`
 ├── patterns.md             # Convencoes do projeto: branch, commit, PR, acoes finais
 ├── hooks.md                # Pontos de extensao por step (before/after de init, plan, implement, pack-up)
@@ -95,7 +96,7 @@ GDD/
 
 ### Arquivo `VERSION`
 
-Uma unica linha com a versao instalada, ex: `v2`. Usado pela skill `upgrade` para detectar migracoes necessarias.
+Uma unica linha com a versao instalada, ex: `v3`. Usado pela skill `upgrade` para detectar migracoes necessarias.
 
 ### Arquivo `patterns.md`
 
@@ -179,10 +180,10 @@ Nenhuma integracao e obrigatoria. Sem Jira/Figma, o framework funciona com input
 
 ## Primeiros passos
 
-1. Instale a skill GDD no seu Claude Code
+1. Instale a skill GOD no seu Claude Code
 2. Rode `install` no seu projeto
-3. Preencha o `GDD/patterns.md` com as convencoes do seu projeto
-4. (Opcional) Preencha os slots de `GDD/hooks.md` que voce quer customizar
+3. Preencha o `GOD/patterns.md` com as convencoes do seu projeto
+4. (Opcional) Preencha os slots de `GOD/hooks.md` que voce quer customizar
 5. Rode `init` com o codigo da sua primeira task
 6. Siga o ciclo: `plan` -> `implement` -> `pack-up`
 7. (Opcional) Rode `learn` quando quiser transformar a task em conhecimento reutilizavel
@@ -190,14 +191,14 @@ Nenhuma integracao e obrigatoria. Sem Jira/Figma, o framework funciona com input
 
 ## Upgrade entre versoes
 
-Se voce tem uma instalacao antiga do GDD (v1) e pulou para uma versao mais nova do framework (v2+):
+Se voce tem uma instalacao antiga do GOD (v1) e pulou para uma versao mais nova do framework (v2+):
 
 1. Rode `upgrade` — a skill detecta automaticamente a versao instalada e aplica as migracoes em cadeia
 2. Os valores configurados (convencoes, tasks, knowledge) sao preservados e reformatados conforme a nova estrutura
 3. Arquivos antigos (ex: `pack-up-instructions.md`) sao removidos apenas apos confirmacao
 
-Novas versoes do GDD adicionam migracoes em `sub-skills/upgrade/migrations/vN-to-vN+1.md`, tornando a skill expansivel indefinidamente.
+Novas versoes do GOD adicionam migracoes em `sub-skills/upgrade/migrations/vN-to-vN+1.md`, tornando a skill expansivel indefinidamente.
 
 ## Recuperacao
 
-Se voce parou no meio de uma task, rode `status` para ver onde parou. A orquestradora detecta a fase automaticamente (via `GDD/tasks/{cod}/status.md`) e sugere o proximo passo.
+Se voce parou no meio de uma task, rode `status` para ver onde parou. A orquestradora detecta a fase automaticamente (via `GOD/tasks/{cod}/status.md`) e sugere o proximo passo.

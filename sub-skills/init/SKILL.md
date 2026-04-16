@@ -1,7 +1,7 @@
 ---
 name: init
 description: |
-  Cria a estrutura de uma nova task no projeto: branch, pasta em `GDD/tasks/` e os arquivos `description.md` (com o input bruto do usuário), `plan.md` (vazio) e `status.md` (fase `initialized`). Não busca dados no Jira, não consulta knowledge, não faz Q&A — isso é responsabilidade da skill `plan`. Use quando o usuário mencionar: "nova task", "iniciar task", "init", "criar task", ou quando a fase de inicialização for ativada pelo GDD.
+  Cria a estrutura de uma nova task no projeto: branch, pasta em `GOD/tasks/` e os arquivos `description.md` (com o input bruto do usuário), `plan.md` (vazio) e `status.md` (fase `initialized`). Não busca dados no Jira, não consulta knowledge, não faz Q&A — isso é responsabilidade da skill `plan`. Use quando o usuário mencionar: "nova task", "iniciar task", "init", "criar task", ou quando a fase de inicialização for ativada pelo GOD.
 tools: Read, Glob, Grep, Bash, Edit, Write
 ---
 
@@ -15,14 +15,14 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 0. Executar hook `before init`
 
-Ler `GDD/hooks.md` e localizar a seção `# before init`.
+Ler `GOD/hooks.md` e localizar a seção `# before init`.
 
 - Se o conteúdo for `skip-hook`: pular e seguir para o passo 1.
 - Se houver instruções em linguagem natural: executá-las integralmente antes de prosseguir. Se as instruções falharem ou pedirem confirmação, pausar e consultar o usuário.
 
 ### 1. Ler convenções de branch no `patterns.md`
 
-Ler `GDD/patterns.md` e extrair:
+Ler `GOD/patterns.md` e extrair:
 
 - **Branch inicial** — nome do branch base. Se o repositório contém múltiplos projetos com branches diferentes, identificar qual aplica ao projeto corrente (pelo diretório ou perguntando ao usuário).
 - **Padrão de nome de branch** — formato a ser seguido ao criar o branch da task (ex: `task/<cod-da-task>/<descrição-kebab-case>`).
@@ -61,7 +61,7 @@ Com o branch inicial e o padrão de nome de branch (passo 1) e o cod-da-task + d
 >
 > Escolha uma opção:
 > 1. **Reverter e continuar** — descarta as alterações, faz checkout no branch inicial e cria o branch da nova task
-> 2. **Criar apenas as pastas** — cria a estrutura da task em `GDD/tasks/` mas não mexe no git. Resolva as pendências manualmente e rode o init novamente
+> 2. **Criar apenas as pastas** — cria a estrutura da task em `GOD/tasks/` mas não mexe no git. Resolva as pendências manualmente e rode o init novamente
 > 3. **Abortar** — cancela o init sem fazer nada
 
 Aguardar a escolha do usuário e agir conforme:
@@ -71,10 +71,10 @@ Aguardar a escolha do usuário e agir conforme:
 
 ### 4. Criar estrutura da task
 
-Criar a seguinte estrutura em `GDD/tasks/`:
+Criar a seguinte estrutura em `GOD/tasks/`:
 
 ```
-GDD/tasks/{cod-da-task}/
+GOD/tasks/{cod-da-task}/
 ├── description.md
 ├── plan.md
 └── status.md
@@ -122,7 +122,7 @@ prs: []
 
 ### 5. Executar hook `after init`
 
-Ler `GDD/hooks.md` e localizar a seção `# after init`.
+Ler `GOD/hooks.md` e localizar a seção `# after init`.
 
 - Se o conteúdo for `skip-hook`: pular e seguir para o passo 6.
 - Se houver instruções em linguagem natural: executá-las integralmente antes do relatório final.
@@ -132,9 +132,9 @@ Ler `GDD/hooks.md` e localizar a seção `# after init`.
 > ✅ Task `{cod-da-task}` inicializada!
 >
 > 🌿 Branch: `{nome-do-branch}` (ou "não criado" se opção 2)
-> 📄 `GDD/tasks/{cod-da-task}/description.md` — input bruto salvo (aguardando enriquecimento pelo `plan`)
-> 📋 `GDD/tasks/{cod-da-task}/plan.md` — aguardando planejamento
-> 📍 `GDD/tasks/{cod-da-task}/status.md` — fase: `initialized`
+> 📄 `GOD/tasks/{cod-da-task}/description.md` — input bruto salvo (aguardando enriquecimento pelo `plan`)
+> 📋 `GOD/tasks/{cod-da-task}/plan.md` — aguardando planejamento
+> 📍 `GOD/tasks/{cod-da-task}/status.md` — fase: `initialized`
 >
 > 💡 Próximo passo: rode `plan` — ela vai buscar dados no Jira, consultar knowledge, fazer Q&A com você e então escrever o plano de implementação.
 >
@@ -144,6 +144,6 @@ Ler `GDD/hooks.md` e localizar a seção `# after init`.
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
+- **Esta skill não escreve em `GOD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
 - **Esta skill não busca dados em sistemas externos** (Jira, Figma). O fetch e a consulta ao knowledge são responsabilidade da skill `plan`.
 - **Esta skill não faz Q&A com o usuário sobre a task.** O esclarecimento de escopo acontece na skill `plan`, quando há mais contexto coletado.

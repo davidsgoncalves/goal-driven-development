@@ -1,17 +1,17 @@
 ---
 name: upgrade
 description: |
-  Detecta a versão instalada do GDD no projeto do usuário e aplica as migrações necessárias até a versão atual. Expansível — cada bump de versão adiciona um novo arquivo em `migrations/`. Use quando o usuário mencionar: "upgrade", "migrar", "atualizar gdd", "upgrade gdd", "v1 para v2", ou quando a orquestradora detectar uma instalação de versão antiga.
+  Detecta a versão instalada do GOD no projeto do usuário e aplica as migrações necessárias até a versão atual. Expansível — cada bump de versão adiciona um novo arquivo em `migrations/`. Use quando o usuário mencionar: "upgrade", "migrar", "atualizar god", "upgrade god", "v1 para v2", ou quando a orquestradora detectar uma instalação de versão antiga.
 tools: Read, Glob, Grep, Bash, Edit, Write
 ---
 
 # Upgrade — Sub-skill de Migração de Versão
 
-> Detecta a versão instalada do GDD no projeto do usuário e aplica as migrações necessárias em cadeia até a versão atual.
+> Detecta a versão instalada do GOD no projeto do usuário e aplica as migrações necessárias em cadeia até a versão atual.
 
 ## Versão atual
 
-**current_version: v2**
+**current_version: v3**
 
 > ⚠️ Ao criar uma nova versão (v3, v4, etc.), atualize este campo e adicione o arquivo de migração correspondente em `migrations/`.
 
@@ -20,6 +20,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 | De → Para | Arquivo |
 |-----------|---------|
 | v1 → v2 | `migrations/v1-to-v2.md` |
+| v2 → v3 | `migrations/v2-to-v3.md` |
 
 > Para adicionar uma nova versão no futuro, crie `migrations/vN-to-vN+1.md`, adicione a linha nesta tabela e bump `current_version` acima.
 
@@ -31,11 +32,11 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 1. Detectar versão instalada
 
-Verificar o arquivo `GDD/VERSION` no projeto do usuário:
+Verificar o arquivo `GOD/VERSION` no projeto do usuário:
 
-- **Se `GDD/` não existe:** informar que não há instalação para migrar e sugerir rodar `install`. Encerrar.
-- **Se `GDD/VERSION` não existe:** a instalação é **v1** (versão anterior ao VERSION file). Assumir `current = v1`.
-- **Se `GDD/VERSION` existe:** ler o conteúdo (uma linha, ex: `v2`). Usar esse valor como `current`.
+- **Se `GOD/` não existe:** informar que não há instalação para migrar e sugerir rodar `install`. Encerrar.
+- **Se `GOD/VERSION` não existe:** a instalação é **v1** (versão anterior ao VERSION file). Assumir `current = v1`.
+- **Se `GOD/VERSION` existe:** ler o conteúdo (uma linha, ex: `v2`). Usar esse valor como `current`.
 
 ### 2. Determinar cadeia de migrações
 
@@ -51,7 +52,7 @@ Comparar `current` (versão instalada) com `target` (versão atual, ver topo des
 Antes de executar qualquer migração, mostrar ao usuário:
 
 ```
-🔄 Upgrade do GDD detectado!
+🔄 Upgrade do GOD detectado!
 
 Versão instalada: {current}
 Versão atual:     {target}
@@ -75,7 +76,7 @@ Para cada migração na cadeia (na ordem determinada no passo 2):
 
 1. Ler o arquivo de instruções correspondente (`sub-skills/upgrade/migrations/vX-to-vY.md`)
 2. Executar as instruções **passo a passo**, na ordem em que aparecem
-3. Ao final da migração, atualizar `GDD/VERSION` com o novo valor (`vY`)
+3. Ao final da migração, atualizar `GOD/VERSION` com o novo valor (`vY`)
 4. Relatar ao usuário o que foi feito nessa migração
 
 **Se uma migração falhar no meio:**
@@ -88,7 +89,7 @@ Para cada migração na cadeia (na ordem determinada no passo 2):
 
 Após aplicar todas as migrações:
 
-1. Verificar que `GDD/VERSION` contém o valor `target`
+1. Verificar que `GOD/VERSION` contém o valor `target`
 2. Verificar que os arquivos esperados para a versão atual existem (listados no último arquivo de migração aplicado)
 3. Executar uma leitura sanity-check em cada arquivo gerado para detectar templates mal renderizados
 
@@ -104,16 +105,16 @@ Migrações aplicadas:
   ✓ v2 → v3 — {resumo}
 
 Arquivos criados/transformados:
-  - GDD/VERSION ({target})
-  - GDD/patterns.md (migrado de pack-up-instructions.md)
-  - GDD/hooks.md (criado com slots default)
+  - GOD/VERSION ({target})
+  - GOD/patterns.md (migrado de pack-up-instructions.md)
+  - GOD/hooks.md (criado com slots default)
   - ...
 
 Arquivos removidos (com sua confirmação):
-  - GDD/pack-up-instructions.md
+  - GOD/pack-up-instructions.md
 
 📋 Próximos passos:
-- Revise `GDD/patterns.md` e `GDD/hooks.md` — migrações preservam valores mas você pode querer ajustar manualmente.
+- Revise `GOD/patterns.md` e `GOD/hooks.md` — migrações preservam valores mas você pode querer ajustar manualmente.
 - {orientações específicas da última migração}
 ```
 
@@ -121,14 +122,14 @@ Arquivos removidos (com sua confirmação):
 
 ## Guard-rails
 
-- **Esta skill nunca escreve em `GDD/knowledge.md`.** Migrações podem reorganizar o arquivo estruturalmente se necessário, mas não adicionam nem removem conhecimento (entradas de tasks).
+- **Esta skill nunca escreve em `GOD/knowledge.md`.** Migrações podem reorganizar o arquivo estruturalmente se necessário, mas não adicionam nem removem conhecimento (entradas de tasks).
 - **Esta skill não sobrescreve valores do usuário silenciosamente.** Sempre preserva o que o usuário configurou (padrões, hooks customizados, descrições de tasks, knowledge) ao transformar de uma versão pra outra. Se um campo não puder ser migrado automaticamente, pergunta ao usuário.
 - **Esta skill não deleta arquivos sem confirmação.** Arquivos antigos que foram substituídos (ex: `pack-up-instructions.md` em v2) são removidos apenas após confirmação explícita do usuário — ou mantidos com sufixo `.bak` se o usuário preferir.
 - **Migrações são idempotentes quando possível.** Rodar a skill duas vezes na mesma versão é seguro (detecta que está atualizado e encerra).
 
 ---
 
-## Como adicionar uma nova migração no futuro (para desenvolvedores do GDD)
+## Como adicionar uma nova migração no futuro (para desenvolvedores do GOD)
 
 1. Criar `migrations/vN-to-vN+1.md` com as instruções passo a passo da transformação
 2. Incluir no topo do arquivo:

@@ -1,13 +1,13 @@
 ---
-name: gdd
+name: god
 description: |
-  GDD (Goal Driven Development) — Meta framework que orquestra o ciclo de vida completo de uma task: install, init, plan, implement, pack-up. Inclui ferramentas auxiliares (review, status, update-plan, learn, code-like-me, upgrade) e integração com Jira/Figma. Use quando o usuário mencionar: "gdd", "nova task", "iniciar task", "planejar task", "implementar task", "pack up", "learn", "conhecimento", "status das tasks", "upgrade gdd", "help", ou qualquer variação do ciclo de desenvolvimento orientado a objetivos.
+  GOD (Goal Oriented Development) — Meta framework que orquestra o ciclo de vida completo de uma task: install, init, plan, implement, pack-up. Inclui ferramentas auxiliares (review, status, update-plan, learn, code-like-me, upgrade) e integração com Jira/Figma. Use quando o usuário mencionar: "god", "nova task", "iniciar task", "planejar task", "implementar task", "pack up", "learn", "conhecimento", "status das tasks", "upgrade god", "help", ou qualquer variação do ciclo de desenvolvimento orientado a objetivos.
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
-# GDD — Skill Orquestradora
+# GOD — Skill Orquestradora
 
-> Skill principal do framework GDD. Orquestra o ciclo de vida de uma task: da inicialização até a entrega. Tem awareness de todas as sub-skills e roteia o usuário para a skill correta.
+> Skill principal do framework GOD. Orquestra o ciclo de vida de uma task: da inicialização até a entrega. Tem awareness de todas as sub-skills e roteia o usuário para a skill correta.
 
 ## Ciclo de vida de uma task
 
@@ -29,13 +29,13 @@ install → init → plan → implement → pack-up
 - **status** — Dashboard de tasks em andamento e suas fases
 - **update-plan** — Atualiza o plano durante a implementação quando surgem mudanças
 - **learn** — Transforma uma task executada em conhecimento reutilizável (ativação explícita pelo usuário). Marca `learned: true` no `status.md` sem alterar `phase`
-- **clean-up** — Arquiva tasks em `packed-up` cujos PRs já foram mergiados (move para `GDD/tasks/.archived/`). Oferece rodar `learn` antes de arquivar tasks ainda não aprendidas
+- **clean-up** — Arquiva tasks em `packed-up` cujos PRs já foram mergiados (move para `GOD/tasks/.archived/`). Oferece rodar `learn` antes de arquivar tasks ainda não aprendidas
 - **code-like-me** — Implementação cirúrgica que segue padrões do projeto (usada como flag do implement)
-- **upgrade** — Migra instalações do GDD de uma versão para outra (expansível por versão)
+- **upgrade** — Migra instalações do GOD de uma versão para outra (expansível por versão)
 
 ## Hooks do fluxo
 
-Cada step do fluxo principal (`init`, `plan`, `implement`, `pack-up`) executa hooks opcionais antes e depois de sua lógica principal, lidos de `GDD/hooks.md`. Se o slot estiver com `skip-hook`, pula. Se tiver instruções em linguagem natural, a skill executa.
+Cada step do fluxo principal (`init`, `plan`, `implement`, `pack-up`) executa hooks opcionais antes e depois de sua lógica principal, lidos de `GOD/hooks.md`. Se o slot estiver com `skip-hook`, pula. Se tiver instruções em linguagem natural, a skill executa.
 
 Ferramentas auxiliares (learn, update-plan, review, status, code-like-me, upgrade) **não** têm hooks.
 
@@ -43,7 +43,7 @@ Ferramentas auxiliares (learn, update-plan, review, status, code-like-me, upgrad
 
 | Skill | Localização | Quando usar |
 |-------|-------------|-------------|
-| `install` | `sub-skills/install/SKILL.md` | Primeira vez no projeto — configura GDD |
+| `install` | `sub-skills/install/SKILL.md` | Primeira vez no projeto — configura GOD |
 | `init` | `sub-skills/init/SKILL.md` | Começar uma nova task |
 | `plan` | `sub-skills/plan/SKILL.md` | Planejar a implementação |
 | `implement` | `sub-skills/implement/SKILL.md` | Executar o plano |
@@ -54,7 +54,7 @@ Ferramentas auxiliares (learn, update-plan, review, status, code-like-me, upgrad
 | `learn` | `sub-skills/learn/SKILL.md` | Transformar task executada em conhecimento |
 | `clean-up` | `sub-skills/clean-up/SKILL.md` | Arquivar tasks em `packed-up` com PRs mergiados |
 | `code-like-me` | `sub-skills/code-like-me/SKILL.md` | Flag do implement para código cirúrgico |
-| `upgrade` | `sub-skills/upgrade/SKILL.md` | Migrar instalação entre versões do GDD |
+| `upgrade` | `sub-skills/upgrade/SKILL.md` | Migrar instalação entre versões do GOD |
 
 ## Roteamento inteligente
 
@@ -71,18 +71,18 @@ Quando o usuário interagir, identifique a intenção e delegue para a sub-skill
 | "mudar o plano", "atualizar plano", "o plano mudou" | `update-plan` |
 | "registrar aprendizado", "learn", "o que aprendi", "transformar em conhecimento" | `learn` |
 | "clean-up", "limpar tasks", "arquivar tasks", "remover tasks concluídas", "arrumar a casa" | `clean-up` |
-| "upgrade", "atualizar gdd", "migrar gdd", "v1 para v2" | `upgrade` |
+| "upgrade", "atualizar god", "migrar god", "v1 para v2" | `upgrade` |
 
 ## Verificação de versão instalada
 
 Antes de delegar para **qualquer** sub-skill exceto `install` e `upgrade`, verificar:
 
-1. **Existe `GDD/VERSION`?**
-   - Se não existe e `GDD/` existe → instalação v1. Alertar o usuário e sugerir `upgrade` antes de prosseguir. Não executar a skill solicitada até o upgrade rodar.
-   - Se não existe e `GDD/` também não existe → sugerir `install`.
+1. **Existe `GOD/VERSION`?**
+   - Se não existe e `GOD/` existe → instalação v1. Alertar o usuário e sugerir `upgrade` antes de prosseguir. Não executar a skill solicitada até o upgrade rodar.
+   - Se não existe e `GOD/` também não existe → sugerir `install`.
    - Se existe → ler o valor.
 
-2. **Valor de `GDD/VERSION` corresponde à versão atual do GDD (`v2`)?**
+2. **Valor de `GOD/VERSION` corresponde à versão atual do GOD (`v3`)?**
    - Sim → prosseguir com a skill solicitada.
    - Não → alertar o usuário e sugerir `upgrade`.
 
@@ -92,23 +92,23 @@ Antes de delegar para uma sub-skill, verifique se os pré-requisitos foram cumpr
 
 | Sub-skill | Pré-requisitos |
 |-----------|----------------|
-| `install` | Nenhum (se `GDD/` já existe, sugerir `upgrade` em vez de reinstalar) |
-| `init` | `GDD/` deve existir e estar na versão atual. Se não existir, sugerir `install` |
-| `plan` | `GDD/tasks/{cod}/description.md` deve existir (init executado). Se não existir, sugerir rodar `init` primeiro |
-| `implement` | `GDD/tasks/{cod}/plan.md` deve estar preenchido (plan executado). Se estiver vazio, sugerir rodar `plan` primeiro |
+| `install` | Nenhum (se `GOD/` já existe, sugerir `upgrade` em vez de reinstalar) |
+| `init` | `GOD/` deve existir e estar na versão atual. Se não existir, sugerir `install` |
+| `plan` | `GOD/tasks/{cod}/description.md` deve existir (init executado). Se não existir, sugerir rodar `init` primeiro |
+| `implement` | `GOD/tasks/{cod}/plan.md` deve estar preenchido (plan executado). Se estiver vazio, sugerir rodar `plan` primeiro |
 | `pack-up` | Deve haver alterações no git para commitar (implement executado). Se não houver, informar o usuário |
-| `update-plan` | `GDD/tasks/{cod}/plan.md` deve existir e estar preenchido |
+| `update-plan` | `GOD/tasks/{cod}/plan.md` deve existir e estar preenchido |
 | `learn` | Task deve ter pelo menos um commit registrado (pack-up executado) |
-| `clean-up` | `GDD/tasks/` deve existir; `gh` CLI instalado e autenticado |
-| `status` | `GDD/` deve existir |
-| `upgrade` | `GDD/` deve existir (skill detecta versão automaticamente) |
+| `clean-up` | `GOD/tasks/` deve existir; `gh` CLI instalado e autenticado |
+| `status` | `GOD/` deve existir |
+| `upgrade` | `GOD/` deve existir (skill detecta versão automaticamente) |
 
 ## Recuperação e continuação
 
 Se o usuário retorna após uma interrupção:
 
 1. **Verificar estado atual** — Rodar `status` internamente para entender onde parou
-2. **Identificar fase** — Ler `GDD/tasks/{cod}/status.md` (campo `phase`) e sugerir o próximo passo:
+2. **Identificar fase** — Ler `GOD/tasks/{cod}/status.md` (campo `phase`) e sugerir o próximo passo:
    - `initialized` → sugerir `plan`
    - `planned` → sugerir `implement`
    - `implementing` → sugerir continuar o `implement` ou rodar `update-plan` se o escopo mudou
@@ -127,20 +127,20 @@ Se o usuário retorna após uma interrupção:
 
 Quando o usuário pedir ajuda, disser "help", "o que posso fazer?", "como funciona?" ou qualquer variação:
 
-1. **Verificar se o projeto já foi instalado** — checar se `GDD/` existe
-2. **Verificar versão** — checar `GDD/VERSION`; se desatualizada, sugerir `upgrade` antes de tudo
-3. **Verificar se há tasks em andamento** — checar `GDD/tasks/`
+1. **Verificar se o projeto já foi instalado** — checar se `GOD/` existe
+2. **Verificar versão** — checar `GOD/VERSION`; se desatualizada, sugerir `upgrade` antes de tudo
+3. **Verificar se há tasks em andamento** — checar `GOD/tasks/`
 4. **Montar resposta contextual:**
 
 **Se o projeto NÃO foi instalado:**
 
 ```
-👋 **Bem-vindo ao GDD — Goal Driven Development!**
+👋 **Bem-vindo ao GOD — Goal Oriented Development!**
 
-O GDD orquestra o ciclo completo de uma task: da coleta de requisitos até a entrega do PR.
+O GOD orquestra o ciclo completo de uma task: da coleta de requisitos até a entrega do PR.
 
-🚀 **Para começar, rode `install`** — isso vai configurar o projeto criando a pasta GDD/ com:
-  • VERSION — versão instalada (atualmente v2)
+🚀 **Para começar, rode `install`** — isso vai configurar o projeto criando a pasta GOD/ com:
+  • VERSION — versão instalada (atualmente v3)
   • knowledge.md — registro de tasks finalizadas (escrito apenas pelo `learn`)
   • patterns.md — convenções do projeto (branch, commit, PR, ações finais)
   • hooks.md — pontos de extensão por step (before/after de init, plan, implement, pack-up)
@@ -156,9 +156,9 @@ Integrações opcionais (não obrigatórias):
 **Se a instalação está em versão antiga:**
 
 ```
-⚠️ **GDD detectado em versão anterior**
+⚠️ **GOD detectado em versão anterior**
 
-A versão atual é v2 mas sua instalação está em {versão-detectada}.
+A versão atual é v3 mas sua instalação está em {versão-detectada}.
 
 Rode `upgrade` para migrar sua estrutura automaticamente — seus valores (patterns, tasks, knowledge) são preservados.
 ```
@@ -166,7 +166,7 @@ Rode `upgrade` para migrar sua estrutura automaticamente — seus valores (patte
 **Se o projeto JÁ foi instalado, está na versão atual e NÃO há tasks:**
 
 ```
-📋 **GDD — Pronto para começar!**
+📋 **GOD — Pronto para começar!**
 
 Seu projeto está configurado. Para iniciar sua primeira task:
 
@@ -187,7 +187,7 @@ Ferramentas auxiliares (quando precisar):
   • `update-plan` — Alterar plano durante implementação
   • `learn` — Transformar task em conhecimento (ativação explícita)
   • `clean-up` — Arquivar tasks em `packed-up` cujos PRs já foram mergiados
-  • `upgrade` — Migrar para versão mais nova do GDD
+  • `upgrade` — Migrar para versão mais nova do GOD
 ```
 
 **Se há tasks em andamento:**
@@ -195,7 +195,7 @@ Ferramentas auxiliares (quando precisar):
 Rodar `status` internamente e apresentar o dashboard junto com a sugestão do próximo passo:
 
 ```
-📋 **GDD — Você tem tasks em andamento!**
+📋 **GOD — Você tem tasks em andamento!**
 
 {dashboard do status}
 
@@ -212,5 +212,5 @@ Ferramentas auxiliares:
   • `clean-up`     — Arquivar tasks em `packed-up` cujos PRs já foram mergiados
   • `status`       — Ver dashboard completo
   • `update-plan`  — Alterar plano durante implementação
-  • `upgrade`      — Migrar para versão mais nova do GDD
+  • `upgrade`      — Migrar para versão mais nova do GOD
 ```

@@ -1,13 +1,13 @@
 ---
 name: install
 description: |
-  Configura a arquitetura de pastas e arquivos GDD no projeto do usuário e verifica integrações MCP opcionais. Use quando o usuário mencionar: "instalar gdd", "install", "configurar gdd", "setup gdd", ou na primeira execução do framework.
+  Configura a arquitetura de pastas e arquivos GOD no projeto do usuário e verifica integrações MCP opcionais. Use quando o usuário mencionar: "instalar god", "install", "configurar god", "setup god", ou na primeira execução do framework.
 tools: Read, Glob, Grep, Bash, Edit, Write
 ---
 
 # Install — Sub-skill de Instalação
 
-> Configura a arquitetura de pastas e arquivos GDD no projeto do usuário e verifica integrações MCP opcionais.
+> Configura a arquitetura de pastas e arquivos GOD no projeto do usuário e verifica integrações MCP opcionais.
 
 ## Instruções
 
@@ -15,18 +15,18 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 0. Verificar se já existe instalação anterior
 
-Antes de qualquer coisa, verificar se `GDD/` já existe no diretório raiz.
+Antes de qualquer coisa, verificar se `GOD/` já existe no diretório raiz.
 
-- **Se `GDD/` existe e tem `GDD/VERSION` com conteúdo `v2`:** informar que o projeto já está instalado na versão atual e encerrar.
-- **Se `GDD/` existe mas `GDD/VERSION` não existe (ou aponta pra versão anterior):** informar que é uma instalação de versão antiga e sugerir rodar a skill `upgrade` em vez de reinstalar. Não sobrescrever arquivos existentes.
-- **Se `GDD/` não existe:** prosseguir com a instalação.
+- **Se `GOD/` existe e tem `GOD/VERSION` com conteúdo `v3`:** informar que o projeto já está instalado na versão atual e encerrar.
+- **Se `GOD/` existe mas `GOD/VERSION` não existe (ou aponta pra versão anterior):** informar que é uma instalação de versão antiga e sugerir rodar a skill `upgrade` em vez de reinstalar. Não sobrescrever arquivos existentes.
+- **Se `GOD/` não existe:** prosseguir com a instalação.
 
-### 1. Criar estrutura GDD
+### 1. Criar estrutura GOD
 
 No diretório raiz do projeto do usuário, crie a seguinte estrutura:
 
 ```
-GDD/
+GOD/
 ├── VERSION
 ├── knowledge.md
 ├── patterns.md
@@ -34,7 +34,7 @@ GDD/
 └── tasks/
 ```
 
-- `VERSION` — arquivo com conteúdo `v2` (uma linha, sem espaços)
+- `VERSION` — arquivo com conteúdo `v3` (uma linha, sem espaços)
 - `knowledge.md` — criado com template padrão (ver seção abaixo)
 - `patterns.md` — criado com template padrão (ver seção abaixo)
 - `hooks.md` — criado com template padrão (ver seção abaixo)
@@ -45,12 +45,12 @@ GDD/
 Conteúdo exato:
 
 ```
-v2
+v3
 ```
 
 ### 3. Preencher template do `knowledge.md`
 
-O arquivo `GDD/knowledge.md` deve ser criado com o seguinte template:
+O arquivo `GOD/knowledge.md` deve ser criado com o seguinte template:
 
 ```markdown
 # Knowledge — Registro de Tasks
@@ -69,7 +69,7 @@ O arquivo `GDD/knowledge.md` deve ser criado com o seguinte template:
 
 ### 4. Preencher template do `patterns.md`
 
-O arquivo `GDD/patterns.md` deve ser criado com o seguinte template para o usuário preencher:
+O arquivo `GOD/patterns.md` deve ser criado com o seguinte template para o usuário preencher:
 
 ```markdown
 # Patterns — Convenções do projeto
@@ -98,7 +98,7 @@ Descreva o formato do título e corpo do PR, idioma e seções obrigatórias.
 
 ### 5. Preencher template do `hooks.md`
 
-O arquivo `GDD/hooks.md` deve ser criado com o seguinte template:
+O arquivo `GOD/hooks.md` deve ser criado com o seguinte template:
 
 ```markdown
 # Hooks — Pontos de extensão por step
@@ -138,9 +138,9 @@ Após criar, informe ao usuário que ele deve preencher o `patterns.md` com as c
 
 ### 6. Gitignore (opcional)
 
-Pergunte ao usuário se deseja adicionar a pasta `GDD/` ao `.gitignore` do projeto.
+Pergunte ao usuário se deseja adicionar a pasta `GOD/` ao `.gitignore` do projeto.
 
-- **Se sim:** adicione `GDD/` ao `.gitignore` existente (ou crie o arquivo se não existir)
+- **Se sim:** adicione `GOD/` ao `.gitignore` existente (ou crie o arquivo se não existir)
 - **Se não:** siga para o próximo passo
 
 ### 7. Verificar integrações opcionais
@@ -160,7 +160,7 @@ Nenhuma dessas integrações é obrigatória, mas sem `gh` a experiência do `pa
 Montar a resposta listando o que está ok e o que está faltando:
 
 ```
-✅ Instalação v2 concluída! Estrutura GDD criada.
+✅ Instalação v3 concluída! Estrutura GOD criada.
 
 🔌 Integrações:
   [✓/✗] Figma MCP — {status}
@@ -173,8 +173,8 @@ Montar a resposta listando o que está ok e o que está faltando:
   - gh: https://cli.github.com (depois `gh auth login`)
 
 📋 Próximos passos:
-  1. Preencha `GDD/patterns.md` com as convenções do seu projeto
-  2. (Opcional) Preencha slots de `GDD/hooks.md` que você quer customizar
+  1. Preencha `GOD/patterns.md` com as convenções do seu projeto
+  2. (Opcional) Preencha slots de `GOD/hooks.md` que você quer customizar
   3. Rode `init` para iniciar sua primeira task
 ```
 
@@ -182,5 +182,5 @@ Montar a resposta listando o que está ok e o que está faltando:
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GDD/knowledge.md`** (apenas cria o arquivo vazio com template). Atualizações de conteúdo são responsabilidade exclusiva de `learn`.
-- **Esta skill não sobrescreve instalações existentes.** Se detectar v1 ou v2 já instalada, orienta o usuário a rodar `upgrade` ou nenhuma ação.
+- **Esta skill não escreve em `GOD/knowledge.md`** (apenas cria o arquivo vazio com template). Atualizações de conteúdo são responsabilidade exclusiva de `learn`.
+- **Esta skill não sobrescreve instalações existentes.** Se detectar uma versão anterior já instalada, orienta o usuário a rodar `upgrade` ou nenhuma ação.

@@ -1,7 +1,7 @@
 ---
 name: clean-up
 description: |
-  Arquiva tasks finalizadas que já tiveram todos os seus PRs mergiados. Antes de arquivar, oferece rodar `learn` em tasks ainda não aprendidas. Move pastas de `GDD/tasks/{cod}/` para `GDD/tasks/.archived/{cod}/` (não apaga — o usuário decide quando remover manualmente). Use quando o usuário mencionar: "clean-up", "limpar tasks", "remover tasks concluídas", "arrumar a casa", "arquivar tasks".
+  Arquiva tasks finalizadas que já tiveram todos os seus PRs mergiados. Antes de arquivar, oferece rodar `learn` em tasks ainda não aprendidas. Move pastas de `GOD/tasks/{cod}/` para `GOD/tasks/.archived/{cod}/` (não apaga — o usuário decide quando remover manualmente). Use quando o usuário mencionar: "clean-up", "limpar tasks", "remover tasks concluídas", "arrumar a casa", "arquivar tasks".
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
@@ -15,7 +15,7 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 1. Verificar pré-requisitos
 
-- Verificar se `GDD/tasks/` existe. Se não, informar que o projeto não foi configurado e encerrar.
+- Verificar se `GOD/tasks/` existe. Se não, informar que o projeto não foi configurado e encerrar.
 - Verificar se o `gh` CLI está disponível (`gh --version`). Se não estiver instalado/autenticado, avisar o usuário:
 
   > ⚠️ A skill `clean-up` precisa do GitHub CLI (`gh`) instalado e autenticado para verificar o status dos PRs.
@@ -26,7 +26,7 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 2. Listar candidatas em `packed-up`
 
-Percorrer cada pasta em `GDD/tasks/`, **ignorando pastas que começam com `.`** (ex: `.archived/`).
+Percorrer cada pasta em `GOD/tasks/`, **ignorando pastas que começam com `.`** (ex: `.archived/`).
 
 Para cada pasta de task, ler `status.md` e filtrar:
 - Incluir apenas as com `phase == packed-up`
@@ -95,17 +95,17 @@ Processar as tasks uma por uma nessa ordem (pergunta de learn → arquivamento) 
 
 Para cada task a arquivar:
 
-1. Garantir que `GDD/tasks/.archived/` existe (criar se não existir)
+1. Garantir que `GOD/tasks/.archived/` existe (criar se não existir)
 2. Mover a pasta:
    ```
-   mv GDD/tasks/{cod-da-task}/ GDD/tasks/.archived/{cod-da-task}/
+   mv GOD/tasks/{cod-da-task}/ GOD/tasks/.archived/{cod-da-task}/
    ```
 3. Se o move falhar (ex: conflito de nome na pasta `.archived/`), renomear com sufixo:
    ```
-   GDD/tasks/.archived/{cod-da-task}-{timestamp}/
+   GOD/tasks/.archived/{cod-da-task}-{timestamp}/
    ```
 
-**Não apagar o branch local nem remoto.** Clean-up mexe apenas em `GDD/tasks/`.
+**Não apagar o branch local nem remoto.** Clean-up mexe apenas em `GOD/tasks/`.
 
 ### 7. Reportar resultado
 
@@ -113,10 +113,10 @@ Para cada task a arquivar:
 ✅ **Clean-up concluído**
 
 Arquivadas ({N}):
-  - `PROJ-123` → `GDD/tasks/.archived/PROJ-123/` (learn executado antes)
-  - `PROJ-456` → `GDD/tasks/.archived/PROJ-456/` (já aprendida)
+  - `PROJ-123` → `GOD/tasks/.archived/PROJ-123/` (learn executado antes)
+  - `PROJ-456` → `GOD/tasks/.archived/PROJ-456/` (já aprendida)
 
-Pendentes (continuam em `GDD/tasks/`):
+Pendentes (continuam em `GOD/tasks/`):
   - `PROJ-789` — PR ainda aberto
 
 Sem PR registrado:
@@ -124,7 +124,7 @@ Sem PR registrado:
 
 ---
 
-📂 Pasta `.archived/` contém as tasks arquivadas. Remoção definitiva é sua decisão — rode `rm -rf GDD/tasks/.archived/` (ou mova para outro local) quando não precisar mais desse histórico.
+📂 Pasta `.archived/` contém as tasks arquivadas. Remoção definitiva é sua decisão — rode `rm -rf GOD/tasks/.archived/` (ou mova para outro local) quando não precisar mais desse histórico.
 
 🌿 Os branches locais/remotos das tasks arquivadas **não foram tocados**. Se quiser removê-los:
   - Local: `git branch -d {branch}`
@@ -135,9 +135,9 @@ Sem PR registrado:
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GDD/knowledge.md`.** Quando o usuário escolhe rodar `learn` antes de arquivar, é a skill `learn` que escreve — esta skill apenas delega.
+- **Esta skill não escreve em `GOD/knowledge.md`.** Quando o usuário escolhe rodar `learn` antes de arquivar, é a skill `learn` que escreve — esta skill apenas delega.
 - **Esta skill não apaga pastas.** Sempre arquiva (move para `.archived/`). Remoção definitiva é ação manual do usuário.
 - **Esta skill nunca age em tasks fora de `phase: packed-up`.** Tasks em andamento (`initialized`, `planned`, `implementing`, `implemented`) são ignoradas.
-- **Esta skill ignora `GDD/tasks/.archived/`** ao listar tasks.
+- **Esta skill ignora `GOD/tasks/.archived/`** ao listar tasks.
 - **Esta skill não mexe em branches git** (nem locais, nem remotos). Só instrui o usuário no relatório final.
 - **Nunca arquiva sem confirmação explícita do usuário.**

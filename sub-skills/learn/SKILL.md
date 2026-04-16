@@ -1,7 +1,7 @@
 ---
 name: learn
 description: |
-  Transforma uma task executada em conhecimento reutilizável. Analisa a descrição, o plano, os commits e o que realmente aconteceu para extrair aprendizados e registrar no knowledge. Use quando o usuário mencionar: "learn", "aprender", "extrair conhecimento", "registrar aprendizado", ou quando a fase de aprendizado for ativada pelo GDD.
+  Transforma uma task executada em conhecimento reutilizável. Analisa a descrição, o plano, os commits e o que realmente aconteceu para extrair aprendizados e registrar no knowledge. Use quando o usuário mencionar: "learn", "aprender", "extrair conhecimento", "registrar aprendizado", ou quando a fase de aprendizado for ativada pelo GOD.
 tools: Read, Glob, Grep, Bash, Edit, Write
 ---
 
@@ -22,15 +22,15 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 Ler todos os artefatos disponíveis:
 
-- `GDD/tasks/{cod-da-task}/description.md` — descrição original, links, Q&A
-- `GDD/tasks/{cod-da-task}/plan.md` — plano de implementação (incluindo histórico de alterações se houver)
+- `GOD/tasks/{cod-da-task}/description.md` — descrição original, links, Q&A
+- `GOD/tasks/{cod-da-task}/plan.md` — plano de implementação (incluindo histórico de alterações se houver)
 
 ### 3. Analisar commits da task
 
 Identificar todos os commits relacionados à task:
 
 - Buscar commits no git que mencionem o código da task (`git log --all --grep="{cod-da-task}"`)
-- Buscar no `GDD/knowledge.md` commits já registrados para esta task (se houver entrada de execução anterior do learn)
+- Buscar no `GOD/knowledge.md` commits já registrados para esta task (se houver entrada de execução anterior do learn)
 - Para cada commit encontrado, analisar o diff (`git diff {hash}~1..{hash}`)
 
 ### 4. Extrair aprendizados
@@ -65,7 +65,7 @@ Se o usuário não tiver nada a acrescentar, seguir adiante.
 
 ### 6. Atualizar knowledge
 
-Atualizar a entrada da task no `GDD/knowledge.md` com o formato completo:
+Atualizar a entrada da task no `GOD/knowledge.md` com o formato completo:
 
 ```markdown
 ### {cod-da-task} — {breve descrição}
@@ -79,7 +79,7 @@ Atualizar a entrada da task no `GDD/knowledge.md` com o formato completo:
 
 ### 7. Marcar task como aprendida
 
-Após gravar a entrada no `knowledge.md`, atualizar `GDD/tasks/{cod-da-task}/status.md`:
+Após gravar a entrada no `knowledge.md`, atualizar `GOD/tasks/{cod-da-task}/status.md`:
 
 - `learned`: `true`
 - `updated_at`: timestamp ISO 8601 em UTC
@@ -95,10 +95,10 @@ Após gravar a entrada no `knowledge.md`, atualizar `GDD/tasks/{cod-da-task}/sta
 > 📁 Arquivos principais: {lista resumida}
 > 💡 Aprendizados: {quantidade} aprendizados extraídos
 >
-> O knowledge está disponível em `GDD/knowledge.md` para consulta em tasks futuras.
+> O knowledge está disponível em `GOD/knowledge.md` para consulta em tasks futuras.
 
 ---
 
 ## Guard-rails
 
-- **Esta skill é a única autorizada a escrever em `GDD/knowledge.md`.** Qualquer atualização ao knowledge deve passar por aqui, ativada explicitamente pelo usuário.
+- **Esta skill é a única autorizada a escrever em `GOD/knowledge.md`.** Qualquer atualização ao knowledge deve passar por aqui, ativada explicitamente pelo usuário.

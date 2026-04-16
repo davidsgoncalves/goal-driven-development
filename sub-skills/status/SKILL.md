@@ -7,22 +7,22 @@ tools: Read, Glob
 
 # Status — Sub-skill de Dashboard
 
-> Mostra o estado atual das tasks lendo apenas o `status.md` de cada pasta em `GDD/tasks/`. Nenhuma inferência, nenhuma consulta ao git, nenhuma leitura de outros arquivos.
+> Mostra o estado atual das tasks lendo apenas o `status.md` de cada pasta em `GOD/tasks/`. Nenhuma inferência, nenhuma consulta ao git, nenhuma leitura de outros arquivos.
 
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos:
 
-### 1. Verificar estrutura GDD
+### 1. Verificar estrutura GOD
 
-Verificar se `GDD/tasks/` existe. Se não existir, informar que o projeto não foi configurado e sugerir rodar `install`. Encerrar.
+Verificar se `GOD/tasks/` existe. Se não existir, informar que o projeto não foi configurado e sugerir rodar `install`. Encerrar.
 
 ### 2. Ler o `status.md` de cada task
 
-Listar pastas em `GDD/tasks/`, **ignorando pastas que começam com `.`** (ex: `.archived/` — tasks arquivadas pela skill `clean-up`).
+Listar pastas em `GOD/tasks/`, **ignorando pastas que começam com `.`** (ex: `.archived/` — tasks arquivadas pela skill `clean-up`).
 
 Para cada pasta restante:
-- Ler `GDD/tasks/{cod-da-task}/status.md`
+- Ler `GOD/tasks/{cod-da-task}/status.md`
 - Extrair o YAML frontmatter: `phase`, `updated_at`, `updated_by`, `branch`, `learned`, `prs`
 
 Se a pasta **não tiver `status.md`** (task legada sem migração), listar no dashboard com `phase: —` e marcador `(sem status.md)`, sugerindo rodar `upgrade` para gerar o arquivo.
@@ -40,7 +40,7 @@ Se a pasta **não tiver `status.md`** (task legada sem migração), listar no da
 ### 4. Apresentar dashboard
 
 ```
-📊 **GDD Status**
+📊 **GOD Status**
 
 | Task | Fase | Branch | Aprendida | PRs | Atualizado em | Próximo passo |
 |------|------|--------|-----------|-----|----------------|----------------|
@@ -61,4 +61,4 @@ Se a pasta **não tiver `status.md`** (task legada sem migração), listar no da
 - **Esta skill é estritamente somente-leitura do `status.md`.** Não lê `patterns.md`, `hooks.md`, `knowledge.md`, `description.md`, `plan.md`. Não executa comandos `git` nem `gh`. Não infere fases.
 - **Não escreve em nenhum arquivo.** Nem em `knowledge.md`, nem em `status.md`, nem em qualquer outro.
 - **Se uma task não tem `status.md`**, apenas reporta a ausência — não tenta inferir a fase.
-- **Ignora `GDD/tasks/.archived/`** e qualquer pasta que comece com `.`.
+- **Ignora `GOD/tasks/.archived/`** e qualquer pasta que comece com `.`.

@@ -21,8 +21,8 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 ### 2. Ler estado atual
 
 Ler os seguintes arquivos:
-- `GDD/tasks/{cod-da-task}/description.md` — descrição original da task
-- `GDD/tasks/{cod-da-task}/plan.md` — plano atual
+- `GOD/tasks/{cod-da-task}/description.md` — descrição original da task
+- `GOD/tasks/{cod-da-task}/plan.md` — plano atual
 
 Se o plano estiver vazio, informar que não há plano para atualizar e sugerir rodar `plan`.
 
@@ -37,7 +37,7 @@ Perguntar ao usuário **o que mudou**. Possíveis cenários:
 
 ### 4. Atualizar o plano
 
-Modificar o `GDD/tasks/{cod-da-task}/plan.md`:
+Modificar o `GOD/tasks/{cod-da-task}/plan.md`:
 - Manter os passos que não mudaram
 - Marcar passos já executados como concluídos (se a implementação já começou)
 - Adicionar, remover ou alterar passos conforme a mudança
@@ -60,7 +60,7 @@ Chamar a sub-skill `review --plan` para validar o plano atualizado contra a desc
 
 ### 6. Atualizar status
 
-Atualizar `GDD/tasks/{cod-da-task}/status.md`:
+Atualizar `GOD/tasks/{cod-da-task}/status.md`:
 
 - `phase`: **preservar o valor atual** (update-plan não muda a fase da task)
 - `updated_at`: timestamp ISO 8601 em UTC
@@ -75,4 +75,4 @@ Mostrar ao usuário o plano atualizado com as diferenças destacadas e pedir val
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GDD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
+- **Esta skill não escreve em `GOD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.

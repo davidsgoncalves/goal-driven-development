@@ -1,13 +1,13 @@
 ---
 name: pack-up
 description: |
-  Executa o fluxo de finalização da task: commit, push, criação de PR e ações finais — tudo conforme definido no patterns.md. Processos customizados (testes, linter, etc.) ficam nos hooks `before pack-up`/`after pack-up`. Use quando o usuário mencionar: "pack up", "finalizar task", "fechar task", "empacotar", ou quando a fase de finalização for ativada pelo GDD.
+  Executa o fluxo de finalização da task: commit, push, criação de PR e ações finais — tudo conforme definido no patterns.md. Processos customizados (testes, linter, etc.) ficam nos hooks `before pack-up`/`after pack-up`. Use quando o usuário mencionar: "pack up", "finalizar task", "fechar task", "empacotar", ou quando a fase de finalização for ativada pelo GOD.
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
 # Pack-up — Sub-skill de Finalização
 
-> Executa o fluxo de finalização da task: commit, push, criação de PR e ações finais — tudo conforme definido no `patterns.md`. Processos customizados (rodar testes, linter, notificações, etc.) são configurados pelo usuário nos hooks `before pack-up`/`after pack-up` em `GDD/hooks.md`.
+> Executa o fluxo de finalização da task: commit, push, criação de PR e ações finais — tudo conforme definido no `patterns.md`. Processos customizados (rodar testes, linter, notificações, etc.) são configurados pelo usuário nos hooks `before pack-up`/`after pack-up` em `GOD/hooks.md`.
 
 ## Instruções
 
@@ -15,7 +15,7 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 0. Executar hook `before pack-up`
 
-Ler `GDD/hooks.md` e localizar a seção `# before pack-up`.
+Ler `GOD/hooks.md` e localizar a seção `# before pack-up`.
 
 - Se o conteúdo for `skip-hook`: pular e seguir para o passo 1.
 - Se houver instruções em linguagem natural: executá-las integralmente antes de prosseguir. Exemplos comuns são rodar testes, linter, type-check.
@@ -26,19 +26,19 @@ Ler `GDD/hooks.md` e localizar a seção `# before pack-up`.
 
 ### 1. Ler convenções do projeto
 
-Ler o arquivo `GDD/patterns.md` para obter as convenções do projeto:
+Ler o arquivo `GOD/patterns.md` para obter as convenções do projeto:
 - Branch inicial
 - Padrão de nome de branch
 - Padrão de mensagem de commit
 - Padrão de mensagem de PR (título e corpo)
 
-> Observação: `patterns.md` contém **apenas padrões**. Ações executáveis (criar PR em draft, não atribuir reviewers, adicionar labels, notificar canais, atualizar tickets) ficam no hook `after pack-up` em `GDD/hooks.md`.
+> Observação: `patterns.md` contém **apenas padrões**. Ações executáveis (criar PR em draft, não atribuir reviewers, adicionar labels, notificar canais, atualizar tickets) ficam no hook `after pack-up` em `GOD/hooks.md`.
 
 ### 2. Identificar a task
 
 - Se o contexto da conversa já contém o código da task, usar esse código
 - Caso contrário, perguntar ao usuário o código da task (ex: `PROJ-123`)
-- Ler `GDD/tasks/{cod-da-task}/description.md` para obter título e descrição da task
+- Ler `GOD/tasks/{cod-da-task}/description.md` para obter título e descrição da task
 
 ### 3. Verificar estado do git
 
@@ -81,7 +81,7 @@ Criar o Pull Request seguindo o **padrão de mensagem de PR** definido no `patte
 
 ### 8. Atualizar status para `packed-up`
 
-Atualizar `GDD/tasks/{cod-da-task}/status.md`:
+Atualizar `GOD/tasks/{cod-da-task}/status.md`:
 
 - `phase`: `packed-up`
 - `updated_at`: timestamp ISO 8601 em UTC
@@ -108,7 +108,7 @@ prs:
 
 ### 9. Executar hook `after pack-up`
 
-Ler `GDD/hooks.md` e localizar a seção `# after pack-up`.
+Ler `GOD/hooks.md` e localizar a seção `# after pack-up`.
 
 - Se o conteúdo for `skip-hook`: pular e seguir para o passo 10.
 - Se houver instruções em linguagem natural: executá-las integralmente antes do relatório final.
@@ -129,4 +129,4 @@ Este hook é o lugar para todas as ações pós-PR: marcar o PR como draft, remo
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GDD/knowledge.md`.** O registro no knowledge é responsabilidade exclusiva da skill `learn`, invocada pelo usuário após o pack-up.
+- **Esta skill não escreve em `GOD/knowledge.md`.** O registro no knowledge é responsabilidade exclusiva da skill `learn`, invocada pelo usuário após o pack-up.
