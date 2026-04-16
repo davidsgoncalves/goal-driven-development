@@ -9,6 +9,19 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 > Cria a estrutura base de uma nova task. Salva o input do usuário sem enriquecer. O trabalho de enriquecimento (Jira, Figma, knowledge, Q&A) acontece na skill `plan`.
 
+## Banner
+
+Ao iniciar esta skill, **antes de qualquer outra ação**, exiba exatamente este bloco no terminal:
+
+```
+  ██████   ██████  ██████  
+ ██       ██    ██ ██   ██ 
+ ██   ███ ██    ██ ██   ██ 
+ ██    ██ ██    ██ ██   ██ 
+  ██████   ██████  ██████  
+  Goal Oriented Development
+```
+
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:

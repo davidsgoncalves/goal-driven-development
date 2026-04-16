@@ -80,4 +80,9 @@ Atualize essas referências manualmente para apontar para "GOD/".
 
 {Se nenhuma referência encontrada:}
 ✅ Nenhuma referência residual a "GDD/" encontrada no projeto.
+
+🗑️ Se você ainda tem a skill GDD antiga instalada no Claude Code, remova-a:
+  - Abra as configurações do Claude Code
+  - Localize a skill "gdd" (apontando para o repo antigo `goal-driven-development`)
+  - Remova-a — a skill GOD já substitui todas as funcionalidades
 ```

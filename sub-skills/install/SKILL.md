@@ -9,17 +9,31 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 > Configura a arquitetura de pastas e arquivos GOD no projeto do usuário e verifica integrações MCP opcionais.
 
+## Banner
+
+Ao iniciar esta skill, **antes de qualquer outra ação**, exiba exatamente este bloco no terminal:
+
+```
+  ██████   ██████  ██████  
+ ██       ██    ██ ██   ██ 
+ ██   ███ ██    ██ ██   ██ 
+ ██    ██ ██    ██ ██   ██ 
+  ██████   ██████  ██████  
+  Goal Oriented Development
+```
+
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 0. Verificar se já existe instalação anterior
 
-Antes de qualquer coisa, verificar se `GOD/` já existe no diretório raiz.
+Antes de qualquer coisa, verificar o estado das pastas no diretório raiz.
 
 - **Se `GOD/` existe e tem `GOD/VERSION` com conteúdo `v3`:** informar que o projeto já está instalado na versão atual e encerrar.
 - **Se `GOD/` existe mas `GOD/VERSION` não existe (ou aponta pra versão anterior):** informar que é uma instalação de versão antiga e sugerir rodar a skill `upgrade` em vez de reinstalar. Não sobrescrever arquivos existentes.
-- **Se `GOD/` não existe:** prosseguir com a instalação.
+- **Se `GOD/` não existe mas `GDD/` existe:** instalação legada da skill GDD detectada. Informar o usuário e sugerir rodar `upgrade` (ou `migrate`) para migrar automaticamente de GDD para GOD. Não instalar do zero — os dados do usuário (tasks, knowledge, patterns, hooks) serão preservados pela migração. Encerrar sem criar nada.
+- **Se nem `GOD/` nem `GDD/` existem:** prosseguir com a instalação.
 
 ### 1. Criar estrutura GOD
 

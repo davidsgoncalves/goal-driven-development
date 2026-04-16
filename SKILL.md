@@ -72,14 +72,16 @@ Quando o usuário interagir, identifique a intenção e delegue para a sub-skill
 | "registrar aprendizado", "learn", "o que aprendi", "transformar em conhecimento" | `learn` |
 | "clean-up", "limpar tasks", "arquivar tasks", "remover tasks concluídas", "arrumar a casa" | `clean-up` |
 | "upgrade", "atualizar god", "migrar god", "v1 para v2" | `upgrade` |
+| "migrate", "migrar do gdd", "migrar gdd para god", "tenho o gdd instalado" | `upgrade` |
 
 ## Verificação de versão instalada
 
 Antes de delegar para **qualquer** sub-skill exceto `install` e `upgrade`, verificar:
 
 1. **Existe `GOD/VERSION`?**
-   - Se não existe e `GOD/` existe → instalação v1. Alertar o usuário e sugerir `upgrade` antes de prosseguir. Não executar a skill solicitada até o upgrade rodar.
-   - Se não existe e `GOD/` também não existe → sugerir `install`.
+   - Se não existe e `GDD/` existe (pasta da skill antiga) → instalação legada da skill GDD. Alertar o usuário e sugerir `upgrade` (ou `migrate`) para migrar de GDD para GOD. Não executar a skill solicitada até a migração rodar.
+   - Se não existe e `GOD/` existe (sem VERSION) → instalação v1. Alertar o usuário e sugerir `upgrade` antes de prosseguir. Não executar a skill solicitada até o upgrade rodar.
+   - Se não existe e nem `GOD/` nem `GDD/` existem → sugerir `install`.
    - Se existe → ler o valor.
 
 2. **Valor de `GOD/VERSION` corresponde à versão atual do GOD (`v3`)?**

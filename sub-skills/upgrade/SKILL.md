@@ -1,7 +1,7 @@
 ---
 name: upgrade
 description: |
-  Detecta a versão instalada do GOD no projeto do usuário e aplica as migrações necessárias até a versão atual. Expansível — cada bump de versão adiciona um novo arquivo em `migrations/`. Use quando o usuário mencionar: "upgrade", "migrar", "atualizar god", "upgrade god", "v1 para v2", ou quando a orquestradora detectar uma instalação de versão antiga.
+  Detecta a versão instalada do GOD (ou da antiga GDD) no projeto do usuário e aplica as migrações necessárias até a versão atual. Também faz a migração de GDD para GOD (rename da pasta + version bump). Expansível — cada bump de versão adiciona um novo arquivo em `migrations/`. Use quando o usuário mencionar: "upgrade", "migrate", "migrar", "atualizar god", "upgrade god", "migrar gdd para god", "tenho o gdd instalado", "v1 para v2", ou quando a orquestradora detectar uma instalação de versão antiga ou legada (GDD).
 tools: Read, Glob, Grep, Bash, Edit, Write
 ---
 
@@ -26,17 +26,34 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 ---
 
+## Banner
+
+Ao iniciar esta skill, **antes de qualquer outra ação**, exiba exatamente este bloco no terminal:
+
+```
+  ██████   ██████  ██████  
+ ██       ██    ██ ██   ██ 
+ ██   ███ ██    ██ ██   ██ 
+ ██    ██ ██    ██ ██   ██ 
+  ██████   ██████  ██████  
+  Goal Oriented Development
+```
+
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 ### 1. Detectar versão instalada
 
-Verificar o arquivo `GOD/VERSION` no projeto do usuário:
+Verificar o estado das pastas no projeto do usuário, nesta ordem:
 
-- **Se `GOD/` não existe:** informar que não há instalação para migrar e sugerir rodar `install`. Encerrar.
-- **Se `GOD/VERSION` não existe:** a instalação é **v1** (versão anterior ao VERSION file). Assumir `current = v1`.
-- **Se `GOD/VERSION` existe:** ler o conteúdo (uma linha, ex: `v2`). Usar esse valor como `current`.
+- **Se `GOD/VERSION` existe:** ler o conteúdo (uma linha, ex: `v3`). Usar esse valor como `current`.
+- **Se `GOD/` existe mas `GOD/VERSION` não existe:** a instalação é **v1** (versão anterior ao VERSION file). Assumir `current = v1`.
+- **Se `GOD/` não existe mas `GDD/` existe:** instalação legada da skill GDD. Detectar a versão:
+  - Se `GDD/VERSION` existe → ler o valor (ex: `v2`). Assumir `current = {valor lido}`.
+  - Se `GDD/VERSION` não existe → assumir `current = v1`.
+  - Em ambos os casos, a migração v2→v3 (que renomeia `GDD/` → `GOD/`) será aplicada na cadeia.
+- **Se nem `GOD/` nem `GDD/` existem:** informar que não há instalação para migrar e sugerir rodar `install`. Encerrar.
 
 ### 2. Determinar cadeia de migrações
 
