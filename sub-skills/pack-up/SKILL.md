@@ -26,11 +26,13 @@ Ler `GOD/hooks.md` e localizar a seção `# before pack-up`.
 
 ### 1. Ler convenções do projeto
 
-Ler o arquivo `GOD/patterns.md` para obter as convenções do projeto:
-- Branch inicial
-- Padrão de nome de branch
+Ler o arquivo `GOD/patterns.md` para obter as convenções de formatação:
 - Padrão de mensagem de commit
 - Padrão de mensagem de PR (título e corpo)
+
+A **branch de destino do PR** (base target) e o **nome da branch da task** não são lidos de `patterns.md` nesta skill — já estão persistidos em `GOD/tasks/{cod-da-task}/status.md` (`branch_base` e `branch`, respectivamente, populados pelo `plan`).
+
+**Multi-project workspace:** se `status.branch` for uma **lista** `[{project, name, base}, ...]` em vez de string, a task afeta múltiplos projetos. Nesse caso, a pack-up itera pelos projetos: para cada entrada, faz `cd` no projeto, commita e abre PR individualmente com a base correspondente. Cada PR é adicionado ao array `prs` do `status.md`.
 
 > Observação: `patterns.md` contém **apenas padrões**. Ações executáveis (criar PR em draft, não atribuir reviewers, adicionar labels, notificar canais, atualizar tickets) ficam no hook `after pack-up` em `GOD/hooks.md`.
 
@@ -73,7 +75,7 @@ Fazer push do branch para o remote:
 ### 7. Criar PR
 
 Criar o Pull Request seguindo o **padrão de mensagem de PR** definido no `patterns.md`:
-- Usar `gh pr create` com título e corpo no padrão configurado
+- Usar `gh pr create` com título e corpo no padrão configurado, apontando para a **branch de destino** = `branch_base` lido de `status.md` (ex: `--base main`). Se `branch_base` estiver ausente (task pré-v4 que não passou pelo novo plan), fallback para o default do repo detectado por `gh`.
 - Se o padrão não estiver definido, usar:
   - **Título:** `{cod-da-task}: {título da task}`
   - **Corpo:** descrição da task + resumo das alterações
@@ -86,7 +88,7 @@ Atualizar `GOD/tasks/{cod-da-task}/status.md`:
 - `phase`: `packed-up`
 - `updated_at`: timestamp ISO 8601 em UTC
 - `updated_by`: `pack-up`
-- `branch`: manter o valor atual
+- `branch`, `branch_base`: manter os valores atuais
 - `learned`: **preservar** o valor atual (não alterar — `learn` é quem controla esse campo)
 - `prs`: **fazer append** da URL do PR criado neste pack-up ao array existente. Não sobrescrever — se a task já tinha PRs de pack-ups anteriores (raro, mas possível em tasks com múltiplos repositórios), manter os anteriores
 

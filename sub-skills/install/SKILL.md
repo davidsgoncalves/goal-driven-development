@@ -30,7 +30,7 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 Antes de qualquer coisa, verificar o estado das pastas no diretório raiz.
 
-- **Se `GOD/` existe e tem `GOD/VERSION` com conteúdo `v3`:** informar que o projeto já está instalado na versão atual e encerrar.
+- **Se `GOD/` existe e tem `GOD/VERSION` com conteúdo `v4`:** informar que o projeto já está instalado na versão atual e encerrar.
 - **Se `GOD/` existe mas `GOD/VERSION` não existe (ou aponta pra versão anterior):** informar que é uma instalação de versão antiga e sugerir rodar a skill `upgrade` em vez de reinstalar. Não sobrescrever arquivos existentes.
 - **Se `GOD/` não existe mas `GDD/` existe:** instalação legada da skill GDD detectada. Informar o usuário e sugerir rodar `upgrade` (ou `migrate`) para migrar automaticamente de GDD para GOD. Não instalar do zero — os dados do usuário (tasks, knowledge, patterns, hooks) serão preservados pela migração. Encerrar sem criar nada.
 - **Se nem `GOD/` nem `GDD/` existem:** prosseguir com a instalação.
@@ -48,7 +48,8 @@ GOD/
 └── tasks/
 ```
 
-- `VERSION` — arquivo com conteúdo `v3` (uma linha, sem espaços)
+- `VERSION` — arquivo com conteúdo `v4` (uma linha, sem espaços)
+
 - `knowledge.md` — criado com template padrão (ver seção abaixo)
 - `patterns.md` — criado com template padrão (ver seção abaixo)
 - `hooks.md` — criado com template padrão (ver seção abaixo)
@@ -59,7 +60,7 @@ GOD/
 Conteúdo exato:
 
 ```
-v3
+v4
 ```
 
 ### 3. Preencher template do `knowledge.md`
@@ -88,7 +89,7 @@ O arquivo `GOD/patterns.md` deve ser criado com o seguinte template para o usuá
 ```markdown
 # Patterns — Convenções do projeto
 
-> Este arquivo define **apenas os padrões** do projeto: branches, commits e PRs. Lido pelas skills `init` e `pack-up`.
+> Este arquivo define **apenas os padrões** do projeto: branches, commits, PRs e filtros auxiliares. Lido pelas skills `plan` (branch inicial + padrão), `pack-up` (commit + PR) e `init-tree` (status Jira a ignorar).
 > Ações executáveis (criar PR em draft, rodar testes, notificar canais, atualizar tickets) ficam no `hooks.md`.
 
 ## Branch inicial
@@ -108,6 +109,16 @@ Descreva o formato esperado do commit (header, body, footer, idioma, tipos permi
 
 ## Padrão de mensagem de PR
 Descreva o formato do título e corpo do PR, idioma e seções obrigatórias.
+
+## Status Jira a ignorar em batch
+Lista de status do Jira que `init-tree` deve pular ao processar folhas (subtasks) em lote. Se a seção estiver ausente ou vazia, o default é: `Done`, `Cancelled`, `Closed`, `Resolved`, `Won't Do`.
+
+Exemplo (um por linha, nome exato como aparece no Jira):
+- Done
+- Cancelled
+- Closed
+- Resolved
+- Won't Do
 ```
 
 ### 5. Preencher template do `hooks.md`
@@ -174,7 +185,7 @@ Nenhuma dessas integrações é obrigatória, mas sem `gh` a experiência do `pa
 Montar a resposta listando o que está ok e o que está faltando:
 
 ```
-✅ Instalação v3 concluída! Estrutura GOD criada.
+✅ Instalação v4 concluída! Estrutura GOD criada.
 
 🔌 Integrações:
   [✓/✗] Figma MCP — {status}

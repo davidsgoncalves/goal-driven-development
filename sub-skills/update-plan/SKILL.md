@@ -65,7 +65,7 @@ Atualizar `GOD/tasks/{cod-da-task}/status.md`:
 - `phase`: **preservar o valor atual** (update-plan não muda a fase da task)
 - `updated_at`: timestamp ISO 8601 em UTC
 - `updated_by`: `update-plan`
-- `branch`, `learned`, `prs`: preservar valores atuais
+- `branch`, `branch_base`, `learned`, `prs`: preservar valores atuais
 
 ### 7. Apresentar plano atualizado
 

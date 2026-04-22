@@ -61,6 +61,7 @@ GOD/
 └── sub-skills/
     ├── install/SKILL.md
     ├── init/SKILL.md
+    ├── init-tree/SKILL.md
     ├── plan/SKILL.md
     ├── implement/SKILL.md
     ├── pack-up/SKILL.md
@@ -68,46 +69,53 @@ GOD/
     ├── review/SKILL.md
     ├── status/SKILL.md
     ├── update-plan/SKILL.md
+    ├── pause/SKILL.md
+    ├── resume/SKILL.md
     ├── clean-up/SKILL.md
     ├── code-like-me/SKILL.md
     └── upgrade/
         ├── SKILL.md                     # Orquestrador de migracoes
         └── migrations/
             ├── v1-to-v2.md              # Tutorial v1 -> v2
-            └── v2-to-v3.md              # Tutorial v2 -> v3 (GDD -> GOD rename)
+            ├── v2-to-v3.md              # Tutorial v2 -> v3 (GDD -> GOD rename)
+            └── v3-to-v4.md              # Tutorial v3 -> v4 (pause/resume + changelog)
 ```
 
 ## Estrutura gerada no projeto do usuario (apos install)
 
 ```
 GOD/
-├── VERSION                 # Versao instalada (atualmente v3)
+├── VERSION                 # Versao instalada (atualmente v4)
 ├── knowledge.md            # Registro de tasks finalizadas — escrito apenas pela skill `learn`
 ├── patterns.md             # Convencoes do projeto: branch, commit, PR, acoes finais
 ├── hooks.md                # Pontos de extensao por step (before/after de init, plan, implement, pack-up)
 └── tasks/
     ├── .archived/          # Tasks arquivadas pela skill `clean-up` (pode nao existir)
     │   └── {cod}/
+    ├── {cod-do-pai}/       # Pasta de contexto criada por `init-tree` (Epic/Story/pai). Contem apenas description.md com kind: context
+    │   └── description.md
     └── {cod-da-task}/
-        ├── description.md  # Descricao, links Jira/Figma, Q&A, commits de referencia
-        ├── plan.md         # Plano de implementacao
-        └── status.md       # Estado atual da task (fase, branch, learned, prs, updated_at)
+        ├── description.md  # Descricao, links Jira/Figma, Q&A. Frontmatter kind: task
+        ├── plan.md         # Plano de implementacao (primeira secao = "Branch de trabalho")
+        ├── changelog.md    # Documento de continuidade: progresso incremental do implement + blocos de pause/resume (criado sob demanda)
+        └── status.md       # Estado atual da task (fase, paused, branch, branch_base, learned, prs, updated_at)
 ```
 
 ### Arquivo `VERSION`
 
-Uma unica linha com a versao instalada, ex: `v3`. Usado pela skill `upgrade` para detectar migracoes necessarias.
+Uma unica linha com a versao instalada, ex: `v4`. Usado pela skill `upgrade` para detectar migracoes necessarias.
 
 ### Arquivo `patterns.md`
 
-**Apenas padroes** (nao contem acoes executaveis). Preenchido pelo usuario apos o install. Contem 4 secoes:
+**Apenas padroes** (nao contem acoes executaveis). Preenchido pelo usuario apos o install. Contem 5 secoes:
 
 - **Branch inicial** — nome(s) do branch base. Suporta multiplos projetos se o repositorio hospedar varios.
 - **Padrao de nome de branch** — formato esperado para branches de task
 - **Padrao de mensagem de commit** — estrutura do commit (header, body, footer, idioma, tipos permitidos)
 - **Padrao de mensagem de PR** — titulo, corpo, idioma, secoes obrigatorias
+- **Status Jira a ignorar em batch** — lista de status que `init-tree` deve pular ao processar folhas em lote. Opcional (default: Done, Cancelled, Closed, Resolved, Won't Do)
 
-Lido por `init` (branch inicial + padrao de nome de branch) e `pack-up` (padrao de commit + padrao de PR).
+Lido por `plan` (branch inicial + padrao de nome de branch, para resolver branch da task), `pack-up` (padrao de commit + padrao de PR) e `init-tree` (status a ignorar).
 
 Acoes executaveis (criar PR em draft, adicionar labels, rodar testes/lint, notificar Slack, atualizar Jira) nao ficam aqui — vao para `hooks.md`.
 

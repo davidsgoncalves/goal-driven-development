@@ -1,7 +1,7 @@
 ---
 name: god
 description: |
-  GOD (Goal Oriented Development) — Meta framework que orquestra o ciclo de vida completo de uma task: install, init, plan, implement, pack-up. Inclui ferramentas auxiliares (review, status, update-plan, learn, code-like-me, upgrade) e integração com Jira/Figma. Use quando o usuário mencionar: "god", "nova task", "iniciar task", "planejar task", "implementar task", "pack up", "learn", "conhecimento", "status das tasks", "upgrade god", "help", ou qualquer variação do ciclo de desenvolvimento orientado a objetivos.
+  GOD (Goal Oriented Development) — Meta framework que orquestra o ciclo de vida completo de uma task: install, init, plan, implement, pack-up. Inclui variantes (init-tree para lote via árvore Jira) e ferramentas auxiliares (review, status, update-plan, pause, resume, learn, code-like-me, upgrade) e integração com Jira/Figma. Use quando o usuário mencionar: "god", "nova task", "iniciar task", "init em lote", "iniciar epic", "iniciar várias tasks", "subtasks do jira", "planejar task", "implementar task", "pack up", "pause", "resume", "pausar", "retomar", "learn", "conhecimento", "status das tasks", "upgrade god", "help", ou qualquer variação do ciclo de desenvolvimento orientado a objetivos.
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
@@ -19,15 +19,20 @@ install → init → plan → implement → pack-up
 ```
 
 1. **install** — Configura o projeto (executar apenas uma vez)
-2. **init** — Inicializa uma nova task (cria estrutura, coleta dados do Jira/Figma, Q&A com usuário)
-3. **plan** — Cria o plano de implementação (analisa contexto, tira dúvidas, escreve plano, revisa)
-4. **implement** — Executa o plano (subagents para tasks complexas; `code-like-me` aplicado por padrão, use `--skip-code-like-me` para desativar)
+2. **init** — Inicializa uma nova task (só cria pastas e descrição; zero git, zero fetch externo)
+3. **plan** — Enriquece a descrição (Jira/Figma/knowledge/Q&A), detecta single vs multi-project, resolve branch+base da task (nome planejado, sem criar) e escreve o plano
+4. **implement** — Cria a(s) branch(es) da task no git, executa o plano (subagents para tasks complexas; `code-like-me` aplicado por padrão, use `--skip-code-like-me` para desativar)
 5. **pack-up** — Finaliza a task (review, commit, push, PR)
+
+**Variante de entrada:**
+- **init-tree** — variante do `init` para lote: recebe um nó-raiz do Jira (Epic, Story, Task com subtasks), desce a árvore toda, cria pastas de contexto para nós internos e chama `init` para cada folha (subtask real)
 
 **Ferramentas auxiliares (não são parte do fluxo linear):**
 - **review** — Revisa qualidade em 2 modos: descrição vs plano (`--plan`) e plano vs execução (`--execution`)
 - **status** — Dashboard de tasks em andamento e suas fases
 - **update-plan** — Atualiza o plano durante a implementação quando surgem mudanças
+- **pause** — Pausa uma task em andamento, registra observação opcional no `changelog.md` e marca `paused: true` no status. Pode ser invocada pelo usuário ou por `implement`/`plan` quando detectam barreira
+- **resume** — Retoma uma task pausada, carrega contexto do changelog, remove `paused` do status e delega de volta à skill da fase ativa
 - **learn** — Transforma uma task executada em conhecimento reutilizável (ativação explícita pelo usuário). Marca `learned: true` no `status.md` sem alterar `phase`
 - **clean-up** — Arquiva tasks em `packed-up` cujos PRs já foram mergiados (move para `GOD/tasks/.archived/`). Oferece rodar `learn` antes de arquivar tasks ainda não aprendidas
 - **code-like-me** — Implementação cirúrgica que segue padrões do projeto (usada como flag do implement)
@@ -37,20 +42,23 @@ install → init → plan → implement → pack-up
 
 Cada step do fluxo principal (`init`, `plan`, `implement`, `pack-up`) executa hooks opcionais antes e depois de sua lógica principal, lidos de `GOD/hooks.md`. Se o slot estiver com `skip-hook`, pula. Se tiver instruções em linguagem natural, a skill executa.
 
-Ferramentas auxiliares (learn, update-plan, review, status, code-like-me, upgrade) **não** têm hooks.
+Ferramentas auxiliares (learn, update-plan, review, status, pause, resume, code-like-me, upgrade) **não** têm hooks.
 
 ## Mapa de sub-skills
 
 | Skill | Localização | Quando usar |
 |-------|-------------|-------------|
 | `install` | `sub-skills/install/SKILL.md` | Primeira vez no projeto — configura GOD |
-| `init` | `sub-skills/init/SKILL.md` | Começar uma nova task |
+| `init` | `sub-skills/init/SKILL.md` | Começar uma nova task (uma de cada vez) |
+| `init-tree` | `sub-skills/init-tree/SKILL.md` | Começar em lote via árvore do Jira (Epic/Story + subtasks) |
 | `plan` | `sub-skills/plan/SKILL.md` | Planejar a implementação |
 | `implement` | `sub-skills/implement/SKILL.md` | Executar o plano |
 | `pack-up` | `sub-skills/pack-up/SKILL.md` | Finalizar e entregar a task |
 | `review` | `sub-skills/review/SKILL.md` | Revisão automática (chamada por plan e pack-up) |
 | `status` | `sub-skills/status/SKILL.md` | Ver estado das tasks |
 | `update-plan` | `sub-skills/update-plan/SKILL.md` | Alterar plano durante implementação |
+| `pause` | `sub-skills/pause/SKILL.md` | Pausar task em andamento e registrar observação |
+| `resume` | `sub-skills/resume/SKILL.md` | Retomar task pausada e continuar |
 | `learn` | `sub-skills/learn/SKILL.md` | Transformar task executada em conhecimento |
 | `clean-up` | `sub-skills/clean-up/SKILL.md` | Arquivar tasks em `packed-up` com PRs mergiados |
 | `code-like-me` | `sub-skills/code-like-me/SKILL.md` | Flag do implement para código cirúrgico |
@@ -64,11 +72,14 @@ Quando o usuário interagir, identifique a intenção e delegue para a sub-skill
 |---------------------|-----------|
 | "instalar", "configurar", "setup" | `install` |
 | "nova task", "iniciar task", código do Jira, link do Jira | `init` |
+| "init em lote", "iniciar epic", "iniciar várias tasks", "subtasks do jira", "criar tasks da árvore" | `init-tree` |
 | "planejar", "criar plano", "como implementar" | `plan` |
 | "implementar", "executar", "codar", "desenvolver" | `implement` |
 | "finalizar", "entregar", "pack up", "commitar e subir PR" | `pack-up` |
 | "status", "como estão as tasks", "dashboard" | `status` |
 | "mudar o plano", "atualizar plano", "o plano mudou" | `update-plan` |
+| "pause", "pausar", "pausar task", "tô travado", "parar aqui", "retomo depois" | `pause` |
+| "resume", "retomar", "continuar task", "voltar na task", "destravei" | `resume` |
 | "registrar aprendizado", "learn", "o que aprendi", "transformar em conhecimento" | `learn` |
 | "clean-up", "limpar tasks", "arquivar tasks", "remover tasks concluídas", "arrumar a casa" | `clean-up` |
 | "upgrade", "atualizar god", "migrar god", "v1 para v2" | `upgrade` |
@@ -84,7 +95,7 @@ Antes de delegar para **qualquer** sub-skill exceto `install` e `upgrade`, verif
    - Se não existe e nem `GOD/` nem `GDD/` existem → sugerir `install`.
    - Se existe → ler o valor.
 
-2. **Valor de `GOD/VERSION` corresponde à versão atual do GOD (`v3`)?**
+2. **Valor de `GOD/VERSION` corresponde à versão atual do GOD (`v4`)?**
    - Sim → prosseguir com a skill solicitada.
    - Não → alertar o usuário e sugerir `upgrade`.
 
@@ -96,10 +107,13 @@ Antes de delegar para uma sub-skill, verifique se os pré-requisitos foram cumpr
 |-----------|----------------|
 | `install` | Nenhum (se `GOD/` já existe, sugerir `upgrade` em vez de reinstalar) |
 | `init` | `GOD/` deve existir e estar na versão atual. Se não existir, sugerir `install` |
-| `plan` | `GOD/tasks/{cod}/description.md` deve existir (init executado). Se não existir, sugerir rodar `init` primeiro |
-| `implement` | `GOD/tasks/{cod}/plan.md` deve estar preenchido (plan executado). Se estiver vazio, sugerir rodar `plan` primeiro |
+| `init-tree` | `GOD/` deve existir na versão atual; MCP Atlassian disponível e autenticado (sem isso não há como fetchar a árvore do Jira) |
+| `plan` | `GOD/tasks/{cod}/description.md` deve existir (init executado). Se não existir, sugerir rodar `init` primeiro. Precisa ler `GOD/patterns.md` para resolver branch — se a seção "Branch inicial" estiver ausente/vazia, orientar o usuário a preencher |
+| `implement` | `GOD/tasks/{cod}/plan.md` deve estar preenchido e `status.md` deve ter `branch` e `branch_base` populados (plan executado). Se algum estiver vazio, sugerir rodar `plan` primeiro |
 | `pack-up` | Deve haver alterações no git para commitar (implement executado). Se não houver, informar o usuário |
 | `update-plan` | `GOD/tasks/{cod}/plan.md` deve existir e estar preenchido |
+| `pause` | `GOD/tasks/{cod}/status.md` deve existir e `phase ≠ packed-up`; não deve estar já pausada |
+| `resume` | `GOD/tasks/{cod}/status.md` deve existir com `paused: true` |
 | `learn` | Task deve ter pelo menos um commit registrado (pack-up executado) |
 | `clean-up` | `GOD/tasks/` deve existir; `gh` CLI instalado e autenticado |
 | `status` | `GOD/` deve existir |
@@ -110,7 +124,9 @@ Antes de delegar para uma sub-skill, verifique se os pré-requisitos foram cumpr
 Se o usuário retorna após uma interrupção:
 
 1. **Verificar estado atual** — Rodar `status` internamente para entender onde parou
-2. **Identificar fase** — Ler `GOD/tasks/{cod}/status.md` (campo `phase`) e sugerir o próximo passo:
+2. **Checar pausa antes de qualquer coisa** — Ler `GOD/tasks/{cod}/status.md` (campo `paused`):
+   - Se `paused: true` → sugerir `resume` antes de qualquer outra skill. O contexto da pausa está em `changelog.md` e `resume` cuida da retomada
+3. **Identificar fase** — Se a task não está pausada, ler o campo `phase` e sugerir o próximo passo:
    - `initialized` → sugerir `plan`
    - `planned` → sugerir `implement`
    - `implementing` → sugerir continuar o `implement` ou rodar `update-plan` se o escopo mudou
@@ -118,12 +134,12 @@ Se o usuário retorna após uma interrupção:
    - `packed-up`:
      - Se `learned: false` → sugerir `learn` (opcional) e depois `clean-up` quando os PRs forem mergiados
      - Se `learned: true` → sugerir `clean-up` quando os PRs forem mergiados
-3. **Fallback** — Se `status.md` não existir (task criada antes desta convenção), inferir a fase pelos arquivos existentes:
+4. **Fallback** — Se `status.md` não existir (task criada antes desta convenção), inferir a fase pelos arquivos existentes:
    - Só `description.md` existe → parou após `init`, sugerir `plan`
    - `plan.md` preenchido mas sem alterações no git → parou antes do `implement`, sugerir `implement`
    - Alterações no git não commitadas → parou durante ou após `implement`, sugerir `pack-up`
    - PR já criado → task finalizada
-4. **Sugerir próximo passo** — Informar o usuário onde parou e qual skill rodar
+5. **Sugerir próximo passo** — Informar o usuário onde parou e qual skill rodar
 
 ## Comando: `help`
 
@@ -142,7 +158,7 @@ Quando o usuário pedir ajuda, disser "help", "o que posso fazer?", "como funcio
 O GOD orquestra o ciclo completo de uma task: da coleta de requisitos até a entrega do PR.
 
 🚀 **Para começar, rode `install`** — isso vai configurar o projeto criando a pasta GOD/ com:
-  • VERSION — versão instalada (atualmente v3)
+  • VERSION — versão instalada (atualmente v4)
   • knowledge.md — registro de tasks finalizadas (escrito apenas pelo `learn`)
   • patterns.md — convenções do projeto (branch, commit, PR, ações finais)
   • hooks.md — pontos de extensão por step (before/after de init, plan, implement, pack-up)
@@ -160,7 +176,7 @@ Integrações opcionais (não obrigatórias):
 ```
 ⚠️ **GOD detectado em versão anterior**
 
-A versão atual é v3 mas sua instalação está em {versão-detectada}.
+A versão atual é v4 mas sua instalação está em {versão-detectada}.
 
 Rode `upgrade` para migrar sua estrutura automaticamente — seus valores (patterns, tasks, knowledge) são preservados.
 ```
@@ -173,20 +189,23 @@ Rode `upgrade` para migrar sua estrutura automaticamente — seus valores (patte
 Seu projeto está configurado. Para iniciar sua primeira task:
 
 1. `init` — Passe o link/código do Jira ou descreva a task manualmente
-   → Cria a descrição, coleta contexto, faz Q&A com você
+   → Cria a pasta e o description bruto. Não toca em git nem fetcha Jira.
+   → Para iniciar em lote a partir de um Epic/Story com subtasks, use `init-tree` (fetcha a árvore do Jira e cria contextos + tasks reais)
 
-2. `plan` — Analisa a task e cria o plano de implementação
+2. `plan` — Enriquece descrição (Jira/Figma/knowledge/Q&A), resolve a branch da task
    → Consulta Figma, commits anteriores, arquitetura do projeto
+   → Escreve "Branch de trabalho" (base + nome) no plan.md e persiste em status.md
 
-3. `implement` — Executa o plano
+3. `implement` — Cria a(s) branch(es) no git e executa o plano
    → Por padrão aplica `code-like-me` (código cirúrgico que imita os devs do projeto). Use `--skip-code-like-me` para desativar.
 
 4. `pack-up` — Finaliza e entrega
    → Review, commit, push, PR — tudo automático
 
 Ferramentas auxiliares (quando precisar):
-  • `status` — Ver dashboard de tasks
+  • `status` — Ver dashboard de tasks (ignora pastas de contexto do init-tree)
   • `update-plan` — Alterar plano durante implementação
+  • `pause` / `resume` — Pausar e retomar uma task em andamento (registra observação no changelog)
   • `learn` — Transformar task em conhecimento (ativação explícita)
   • `clean-up` — Arquivar tasks em `packed-up` cujos PRs já foram mergiados
   • `upgrade` — Migrar para versão mais nova do GOD
@@ -205,8 +224,9 @@ Rodar `status` internamente e apresentar o dashboard junto com a sugestão do pr
 
 Steps do fluxo:
   • `init`         — Iniciar nova task
-  • `plan`         — Criar plano de implementação
-  • `implement`    — Executar o plano
+  • `init-tree`    — Iniciar em lote via árvore Jira (Epic/Story + subtasks)
+  • `plan`         — Criar plano de implementação (resolve branch da task)
+  • `implement`    — Executar o plano (cria a branch no git)
   • `pack-up`      — Finalizar e entregar (commit + PR)
 
 Ferramentas auxiliares:
@@ -214,5 +234,7 @@ Ferramentas auxiliares:
   • `clean-up`     — Arquivar tasks em `packed-up` cujos PRs já foram mergiados
   • `status`       — Ver dashboard completo
   • `update-plan`  — Alterar plano durante implementação
+  • `pause`        — Pausar task em andamento e registrar observação no changelog
+  • `resume`       — Retomar task pausada
   • `upgrade`      — Migrar para versão mais nova do GOD
 ```

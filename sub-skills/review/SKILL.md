@@ -60,8 +60,8 @@ Chamada pela skill `pack-up` antes de finalizar.
 **Objetivo:** Garantir que a implementação executou fielmente o que o plano definiu.
 
 **Passos:**
-1. Ler `GOD/tasks/{cod-da-task}/plan.md`
-2. Analisar o diff das alterações no git (`git diff` do branch da task vs branch inicial)
+1. Ler `GOD/tasks/{cod-da-task}/plan.md` e `GOD/tasks/{cod-da-task}/status.md` (para obter `branch` e `branch_base`)
+2. Analisar o diff das alterações no git (`git diff {branch_base}..{branch}` — comparando branch da task com branch base registrada no status)
 3. Comparar o que foi planejado com o que foi efetivamente implementado
 
 **Critérios de revisão:**

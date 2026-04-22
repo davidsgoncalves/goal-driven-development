@@ -11,7 +11,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 ## Versão atual
 
-**current_version: v3**
+**current_version: v4**
 
 > ⚠️ Ao criar uma nova versão (v3, v4, etc.), atualize este campo e adicione o arquivo de migração correspondente em `migrations/`.
 
@@ -21,6 +21,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 |-----------|---------|
 | v1 → v2 | `migrations/v1-to-v2.md` |
 | v2 → v3 | `migrations/v2-to-v3.md` |
+| v3 → v4 | `migrations/v3-to-v4.md` |
 
 > Para adicionar uma nova versão no futuro, crie `migrations/vN-to-vN+1.md`, adicione a linha nesta tabela e bump `current_version` acima.
 
@@ -47,7 +48,7 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 Verificar o estado das pastas no projeto do usuário, nesta ordem:
 
-- **Se `GOD/VERSION` existe:** ler o conteúdo (uma linha, ex: `v3`). Usar esse valor como `current`.
+- **Se `GOD/VERSION` existe:** ler o conteúdo (uma linha, ex: `v4`). Usar esse valor como `current`.
 - **Se `GOD/` existe mas `GOD/VERSION` não existe:** a instalação é **v1** (versão anterior ao VERSION file). Assumir `current = v1`.
 - **Se `GOD/` não existe mas `GDD/` existe:** instalação legada da skill GDD. Detectar a versão:
   - Se `GDD/VERSION` existe → ler o valor (ex: `v2`). Assumir `current = {valor lido}`.
@@ -61,7 +62,7 @@ Comparar `current` (versão instalada) com `target` (versão atual, ver topo des
 
 - Se `current == target`: informar que já está na versão atual e encerrar.
 - Se `current < target`: montar a lista ordenada de migrações a aplicar, consultando a tabela "Migrações disponíveis".
-  - Exemplo: se `current = v1` e `target = v3`, aplicar em sequência: `v1-to-v2`, depois `v2-to-v3`.
+  - Exemplo: se `current = v1` e `target = v4`, aplicar em sequência: `v1-to-v2`, `v2-to-v3`, depois `v3-to-v4`.
 - Se `current > target`: instalação está numa versão posterior à suportada (provavelmente erro de configuração). Alertar o usuário e encerrar sem alterar nada.
 
 ### 3. Confirmar com o usuário
@@ -77,6 +78,7 @@ Versão atual:     {target}
 Migrações a aplicar:
   1. v1 → v2 — {resumo curto da migração 1}
   2. v2 → v3 — {resumo curto da migração 2}
+  3. v3 → v4 — {resumo curto da migração 3}
   ...
 
 As migrações são aplicadas em cadeia e preservam os valores que você já configurou no projeto (patterns, hooks, knowledge, tasks). Arquivos antigos que não existem na versão nova são removidos apenas após confirmação.
@@ -120,6 +122,7 @@ Após aplicar todas as migrações:
 Migrações aplicadas:
   ✓ v1 → v2 — {resumo}
   ✓ v2 → v3 — {resumo}
+  ✓ v3 → v4 — {resumo}
 
 Arquivos criados/transformados:
   - GOD/VERSION ({target})
