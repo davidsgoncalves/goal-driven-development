@@ -21,7 +21,7 @@ install → init → plan → implement → pack-up
 1. **install** — Configura o projeto (executar apenas uma vez)
 2. **init** — Inicializa uma nova task (só cria pastas e descrição; zero git, zero fetch externo)
 3. **plan** — Enriquece a descrição (Jira/Figma/knowledge/Q&A), detecta single vs multi-project, resolve branch+base da task (nome planejado, sem criar) e escreve o plano
-4. **implement** — Cria a(s) branch(es) da task no git, executa o plano (subagents para tasks complexas; `code-like-me` aplicado por padrão, use `--skip-code-like-me` para desativar)
+4. **implement** — Cria a(s) branch(es) da task no git, executa o plano (subagents para tasks complexas; `code-like-me` aplicado por padrão, use `--skip-code-like-me` para desativar). Após escrever código, roda verificação contra `GOD/learned-patterns.md` e ajusta pequenos desvios (use `--skip-patterns-check` para desativar)
 5. **pack-up** — Finaliza a task (review, commit, push, PR)
 
 **Variante de entrada:**
@@ -33,7 +33,7 @@ install → init → plan → implement → pack-up
 - **update-plan** — Atualiza o plano durante a implementação quando surgem mudanças
 - **pause** — Pausa uma task em andamento, registra observação opcional no `changelog.md` e marca `paused: true` no status. Pode ser invocada pelo usuário ou por `implement`/`plan` quando detectam barreira
 - **resume** — Retoma uma task pausada, carrega contexto do changelog, remove `paused` do status e delega de volta à skill da fase ativa
-- **learn** — Transforma uma task executada em conhecimento reutilizável (ativação explícita pelo usuário). Marca `learned: true` no `status.md` sem alterar `phase`
+- **learn** — Transforma uma task executada em conhecimento reutilizável (ativação explícita pelo usuário). Numa mesma invocação executa duas ações em sequência: (1) escreve entrada da task em `GOD/knowledge.md`; (2) pergunta ao usuário por regras generalizáveis e as anexa em `GOD/learned-patterns.md`. Marca `learned: true` no `status.md` sem alterar `phase`
 - **clean-up** — Arquiva tasks em `packed-up` cujos PRs já foram mergiados (move para `GOD/tasks/.archived/`). Oferece rodar `learn` antes de arquivar tasks ainda não aprendidas
 - **code-like-me** — Implementação cirúrgica que segue padrões do projeto (usada como flag do implement)
 - **upgrade** — Migra instalações do GOD de uma versão para outra (expansível por versão)
@@ -95,7 +95,7 @@ Antes de delegar para **qualquer** sub-skill exceto `install` e `upgrade`, verif
    - Se não existe e nem `GOD/` nem `GDD/` existem → sugerir `install`.
    - Se existe → ler o valor.
 
-2. **Valor de `GOD/VERSION` corresponde à versão atual do GOD (`v4`)?**
+2. **Valor de `GOD/VERSION` corresponde à versão atual do GOD (`v5`)?**
    - Sim → prosseguir com a skill solicitada.
    - Não → alertar o usuário e sugerir `upgrade`.
 
@@ -158,9 +158,10 @@ Quando o usuário pedir ajuda, disser "help", "o que posso fazer?", "como funcio
 O GOD orquestra o ciclo completo de uma task: da coleta de requisitos até a entrega do PR.
 
 🚀 **Para começar, rode `install`** — isso vai configurar o projeto criando a pasta GOD/ com:
-  • VERSION — versão instalada (atualmente v4)
+  • VERSION — versão instalada (atualmente v5)
   • knowledge.md — registro de tasks finalizadas (escrito apenas pelo `learn`)
   • patterns.md — convenções do projeto (branch, commit, PR, ações finais)
+  • learned-patterns.md — regras generalizáveis escopadas (geral/linguagem/projeto), escritas pelo `learn` após revisão de PR e aplicadas pelo `implement` após a escrita de código
   • hooks.md — pontos de extensão por step (before/after de init, plan, implement, pack-up)
   • tasks/ — pasta onde cada task terá sua descrição, plano e status
 
@@ -176,7 +177,7 @@ Integrações opcionais (não obrigatórias):
 ```
 ⚠️ **GOD detectado em versão anterior**
 
-A versão atual é v4 mas sua instalação está em {versão-detectada}.
+A versão atual é v5 mas sua instalação está em {versão-detectada}.
 
 Rode `upgrade` para migrar sua estrutura automaticamente — seus valores (patterns, tasks, knowledge) são preservados.
 ```
@@ -198,6 +199,7 @@ Seu projeto está configurado. Para iniciar sua primeira task:
 
 3. `implement` — Cria a(s) branch(es) no git e executa o plano
    → Por padrão aplica `code-like-me` (código cirúrgico que imita os devs do projeto). Use `--skip-code-like-me` para desativar.
+   → Após escrever código, roda verificação contra `learned-patterns.md` (regras aprendidas em PRs anteriores) e ajusta pequenos desvios. Use `--skip-patterns-check` para desativar.
 
 4. `pack-up` — Finaliza e entrega
    → Review, commit, push, PR — tudo automático

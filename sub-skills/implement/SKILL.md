@@ -12,6 +12,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ## Flags
 
 - `--skip-code-like-me` — Desativa a aplicação da sub-skill `code-like-me`. Nesse modo livre, a IA segue o plano e as convenções do projeto, mas tem liberdade para escolher a abordagem sem precisar replicar estilo dev-por-dev. **Sem esta flag, `code-like-me` é aplicado automaticamente.**
+- `--skip-patterns-check` — Desativa a verificação contra `GOD/learned-patterns.md` (passo 6.5). Útil quando o usuário quer rodar implement rapidamente sem o ajuste automático de regras. **Sem esta flag, a verificação roda sempre que o arquivo existe e tem pelo menos uma regra.**
 
 ## Instruções
 
@@ -197,6 +198,43 @@ Após implementar:
 
 > ℹ️ Esta skill **não roda** type-check, linter, testes ou qualquer outro processo de validação automatizada. Esses processos são configurados pelo usuário nos hooks (`after implement` ou `before pack-up`, conforme preferência) e executados por aqueles hooks.
 
+### 6.5. Verificação contra `learned-patterns.md`
+
+Esta etapa **roda por padrão** e captura pequenos desvios de regras registradas pelo `learn` em tasks anteriores (ex: "handlers internos usam prefixo `on*`", "linha em branco entre setup imperativo e `try`"). Se a flag `--skip-patterns-check` foi passada, **pular este passo inteiro** e seguir para o 7.
+
+1. **Localizar o arquivo.**
+   - Ler `GOD/learned-patterns.md`.
+   - Se o arquivo **não existe**: criar com o template canônico (mesmo template do `install` passo 4.5) e pular — não há regras a aplicar ainda.
+   - Se existe mas **não tem regras** (apenas header + `---`): pular — não há regras a aplicar.
+
+2. **Filtrar regras aplicáveis ao que foi implementado.**
+   - Identificar linguagens dos arquivos alterados (extensões: `.rb` → `ruby`; `.ts`/`.tsx`/`.js`/`.jsx` → `js-ts`; `.py` → `python`; etc.).
+   - Identificar projeto(s) tocado(s) (em single-project, o próprio; em multi-project, cada subprojeto afetado).
+   - Carregar apenas as regras cujo escopo seja `geral`, `linguagem: <uma das linguagens>`, ou `projeto: <um dos projetos>`.
+   - **Ignorar** regras marcadas com `~~riscado~~`.
+
+3. **Checar os arquivos modificados contra cada regra aplicável.**
+   - Reler os arquivos modificados (não o repo inteiro).
+   - Para cada regra, verificar se há violações no que foi alterado.
+   - **Ignorar código legado não tocado nesta task** — só o diff importa. (Ex: uma regra tipo "prefixo `on*`" aplica-se a handlers novos/modificados, não a handlers antigos intactos.)
+
+4. **Ajustar automaticamente quando a correção é mecânica.**
+   - Regras de formatação (linhas em branco, ordem de blocos, indentação) → corrigir direto.
+   - Regras de nomenclatura simples (ex: `handle*` → `on*` em handlers novos) → corrigir direto.
+   - **Se a correção exige escolha semântica** (ex: escolher `logable` correto ao gravar no modelo `Log`), **perguntar ao usuário** antes de ajustar.
+
+5. **Registrar no `changelog.md`** (uma entrada só, mesmo que várias regras sejam checadas):
+
+   ```markdown
+
+   ## {timestamp-iso-8601-utc} — patterns-check
+   - **Regras aplicadas:** {contagem} regras (escopos: {lista dos escopos usados})
+   - **Ajustes automáticos:** {lista de arquivos ajustados e qual regra motivou} — ou "nenhum ajuste necessário"
+   - **Pendências:** {regras que precisam de decisão do usuário, se houver} — ou omitir se não houver
+   ```
+
+6. **Se houver pendências não resolvíveis automaticamente**, apresentar ao usuário antes de seguir pro passo 7 e aguardar decisão.
+
 ### 7. Atualizar status para `implemented`
 
 Após concluir a verificação pós-implementação, atualizar `GOD/tasks/{cod-da-task}/status.md`:
@@ -228,4 +266,4 @@ Apresentar ao usuário:
 ## Guard-rails
 
 - **Esta skill é a dona da criação da branch no git.** O `init` não toca em git; o `plan` apenas resolve nome + base; o `implement` cria/ativa fisicamente.
-- **Esta skill não escreve em `GOD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
+- **Esta skill não escreve em `GOD/knowledge.md` nem em `GOD/learned-patterns.md`.** Apenas a skill `learn` pode fazê-lo. Esta skill **lê** `learned-patterns.md` no passo 6.5 e pode **criar o arquivo vazio com template** caso não exista (criação defensiva para instalações pré-v5 que não rodaram o upgrade).

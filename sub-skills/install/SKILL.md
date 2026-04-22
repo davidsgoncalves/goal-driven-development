@@ -30,7 +30,7 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 Antes de qualquer coisa, verificar o estado das pastas no diretório raiz.
 
-- **Se `GOD/` existe e tem `GOD/VERSION` com conteúdo `v4`:** informar que o projeto já está instalado na versão atual e encerrar.
+- **Se `GOD/` existe e tem `GOD/VERSION` com conteúdo `v5`:** informar que o projeto já está instalado na versão atual e encerrar.
 - **Se `GOD/` existe mas `GOD/VERSION` não existe (ou aponta pra versão anterior):** informar que é uma instalação de versão antiga e sugerir rodar a skill `upgrade` em vez de reinstalar. Não sobrescrever arquivos existentes.
 - **Se `GOD/` não existe mas `GDD/` existe:** instalação legada da skill GDD detectada. Informar o usuário e sugerir rodar `upgrade` (ou `migrate`) para migrar automaticamente de GDD para GOD. Não instalar do zero — os dados do usuário (tasks, knowledge, patterns, hooks) serão preservados pela migração. Encerrar sem criar nada.
 - **Se nem `GOD/` nem `GDD/` existem:** prosseguir com a instalação.
@@ -44,14 +44,16 @@ GOD/
 ├── VERSION
 ├── knowledge.md
 ├── patterns.md
+├── learned-patterns.md
 ├── hooks.md
 └── tasks/
 ```
 
-- `VERSION` — arquivo com conteúdo `v4` (uma linha, sem espaços)
+- `VERSION` — arquivo com conteúdo `v5` (uma linha, sem espaços)
 
 - `knowledge.md` — criado com template padrão (ver seção abaixo)
 - `patterns.md` — criado com template padrão (ver seção abaixo)
+- `learned-patterns.md` — criado com template padrão (ver seção abaixo)
 - `hooks.md` — criado com template padrão (ver seção abaixo)
 - `tasks/` — pasta vazia para armazenar tasks do projeto
 
@@ -60,7 +62,7 @@ GOD/
 Conteúdo exato:
 
 ```
-v4
+v5
 ```
 
 ### 3. Preencher template do `knowledge.md`
@@ -119,6 +121,40 @@ Exemplo (um por linha, nome exato como aparece no Jira):
 - Closed
 - Resolved
 - Won't Do
+```
+
+### 4.5. Preencher template do `learned-patterns.md`
+
+O arquivo `GOD/learned-patterns.md` deve ser criado com o seguinte template:
+
+```markdown
+# Learned Patterns — Regras aprendidas nas tasks
+
+> Regras de estilo, convenções e armadilhas registradas após a revisão de PR de tasks anteriores. Lido pelo `implement` logo após a escrita de código (passo de verificação contra padrões) e escrito pelo `learn` após a revisão do PR.
+>
+> **Escrito apenas pela skill `learn`** — nenhuma outra skill modifica o conteúdo.
+>
+> **Escopos** (cada regra tem um):
+> - `geral` — aplica-se a todos os projetos.
+> - `linguagem: <lang>` — aplica-se a todos os projetos naquela linguagem.
+> - `projeto: <nome>` — aplica-se somente àquele projeto.
+>
+> **Convenção:** adicionar novas regras ao final da lista, numeradas. Não remover, apenas marcar como revogada se necessário (`~~riscado~~` + motivo).
+
+---
+
+<!-- Formato de cada regra:
+
+## N. Título curto da regra
+
+**Escopo:** <geral | linguagem: X | projeto: Y>
+
+Descrição da regra.
+
+**Por quê:** motivo — contexto que permite julgar casos de borda.
+
+**Como aplicar:** quando/onde a regra incide. Pode incluir blocos "Bom" e "Ruim" com exemplos curtos ilustrando a regra (não são exemplos específicos de uma task — são ilustrações da regra).
+-->
 ```
 
 ### 5. Preencher template do `hooks.md`
@@ -185,7 +221,7 @@ Nenhuma dessas integrações é obrigatória, mas sem `gh` a experiência do `pa
 Montar a resposta listando o que está ok e o que está faltando:
 
 ```
-✅ Instalação v4 concluída! Estrutura GOD criada.
+✅ Instalação v5 concluída! Estrutura GOD criada.
 
 🔌 Integrações:
   [✓/✗] Figma MCP — {status}
@@ -200,12 +236,13 @@ Montar a resposta listando o que está ok e o que está faltando:
 📋 Próximos passos:
   1. Preencha `GOD/patterns.md` com as convenções do seu projeto
   2. (Opcional) Preencha slots de `GOD/hooks.md` que você quer customizar
-  3. Rode `init` para iniciar sua primeira task
+  3. `GOD/learned-patterns.md` começa vazio — a skill `learn` vai preenchê-lo após a revisão de PR
+  4. Rode `init` para iniciar sua primeira task
 ```
 
 ---
 
 ## Guard-rails
 
-- **Esta skill não escreve em `GOD/knowledge.md`** (apenas cria o arquivo vazio com template). Atualizações de conteúdo são responsabilidade exclusiva de `learn`.
+- **Esta skill não escreve em `GOD/knowledge.md` nem em `GOD/learned-patterns.md`** (apenas cria os arquivos vazios com template). Atualizações de conteúdo são responsabilidade exclusiva de `learn`.
 - **Esta skill não sobrescreve instalações existentes.** Se detectar uma versão anterior já instalada, orienta o usuário a rodar `upgrade` ou nenhuma ação.
