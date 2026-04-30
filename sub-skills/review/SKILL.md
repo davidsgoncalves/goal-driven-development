@@ -9,6 +9,60 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 
 > Revisa a qualidade do trabalho em três modos: `--spec` (contrato de escopo), `--plan` (descrição+spec vs plano técnico), `--execution` (plano vs execução). Retorna relatórios para a skill chamadora avaliar e corrigir.
 
+## Execução via subagent isolado (a partir da v8.1)
+
+Os três modos (`--spec`, `--plan`, `--execution`) executam suas verificações através de **subagent isolado** invocado pela `Agent` tool, não no contexto do agent principal. Motivo: o agent que escreveu a spec/plan/código tem viés sobre o próprio trabalho — mesma instância revisando o que escreveu costuma "validar" inconscientemente. Subagent fresh, com contexto vazio e tools restritas, dá fresh eyes de verdade.
+
+### Como funciona em cada modo
+
+| Modo | `subagent_type` | Tools que o subagent recebe | Por quê |
+|------|-----------------|-----------------------------|---------|
+| `--spec` | `Explore` | Read, Glob, Grep | Só precisa ler description e spec. Não pode editar — garantia estrutural de que reviewer só revisa |
+| `--quick` (variante de `--spec`) | `Explore` | Read, Glob, Grep | Mesmo, com prompt enxuto pulando semântica profunda |
+| `--plan` | `Explore` | Read, Glob, Grep | Só precisa ler description, spec, plan |
+| `--execution` | `general-purpose` | Tudo | Precisa rodar `git diff` (Bash) e ler arquivos modificados; pode chamar `coverage` se necessário |
+
+### Padrão de invocação
+
+A skill chamadora (`spec`, `plan`, `pack-up`) ainda invoca `review --modo`. Internamente, a `review`:
+
+1. Monta o prompt do subagent contendo:
+   - Tipo de review e código da task
+   - Caminhos absolutos dos arquivos a ler (não passa o conteúdo — subagent lê pra ter contexto fresco)
+   - Lista de critérios de revisão correspondentes ao modo
+   - Formato exato do relatório esperado
+   - Regra de veredicto (Aprovado / Ajustes necessários / Reprovado) com gatilhos
+
+2. Invoca:
+
+```
+Agent({
+  subagent_type: "Explore"   // ou "general-purpose" pra --execution
+  description: "Review crítico de [spec|plan|execution] da task <cod>",
+  prompt: <prompt montado no passo 1>
+})
+```
+
+3. Captura o texto retornado (já no formato do relatório).
+
+4. Repassa o relatório à skill chamadora sem alteração.
+
+### Garantias do isolamento
+
+- O subagent **não vê** a conversa do agent principal — só o prompt recebido.
+- O subagent **não pode escrever** em modos `--spec` e `--plan` (Explore é read-only). Em `--execution` pode rodar Bash mas não Edit/Write — não consegue alterar código.
+- O contexto principal **não é poluído** pelo raciocínio interno do subagent (lendo arquivos, comparando, formatando) — recebe só o relatório final.
+- Múltiplas reviews em paralelo são possíveis se a skill chamadora invocar 2+ modos numa única mensagem (caso raro hoje, mas suportado pela arquitetura).
+
+### Quando NÃO usar subagent
+
+- **Em testes/dry-run da própria skill `review`** — se o usuário invocar `review` diretamente sem skill chamadora, comportamento é igual (subagent invocado mesmo).
+- **Se `Agent` tool não estiver disponível no ambiente** (caso muito improvável em Claude Code) — fallback inline, com aviso explícito ao usuário no relatório: "⚠️ Review executado no agent principal (subagent indisponível) — possível viés de auto-validação."
+
+### Custo
+
+Cada review consome ~1.5x–2x tokens vs execução inline (subagent lê arquivos do zero, sem cache do agent principal). Latência adicional de poucos segundos por chamada. O custo é justificado pelo ganho de qualidade — viés de auto-validação é a principal causa de "reviews que aprovam tudo".
+
 ## Modos
 
 ### Modo 1: `--spec` — Qualidade da spec

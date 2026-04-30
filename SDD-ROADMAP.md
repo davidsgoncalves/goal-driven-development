@@ -2,7 +2,15 @@
 
 > Plano técnico de evolução do framework GOD, do estado atual até virar **SDD de verdade**, dentro do escopo da realidade onde ele é usado: time pequeno, releases diários, escopo que muda, arquitetura assistida (não imposta), spec é lei quando chega ao dev.
 
-> **Status:** Fases 1 (v6), 2 (v7) e 3 (v8) entregues. v6: spec extraída em path configurável. v7: hooks de propagação ativa, review semântico profundo, freshness check, `spec --review-feedback`, `publish-spec`. v8: rastreabilidade AC × validação via comentário `// covers: AC-X` em testes + `coverage.md` pra validações manuais; `coverage` skill nova; `pack-up` injeta tabela no PR; `review --execution` ganha eixo de cobertura. Próxima: Fase 4 (v9) — Spec viva (versionamento de mudança de escopo, feature spec eterna + delta + propagação).
+> **Status:** Fases 1 (v6), 2 (v7) e 3 (v8) entregues. Patch v8.1: peer-review via subagent isolado nos 3 modos do `review`.
+>
+> **Resumo das fases:**
+> - v6: spec extraída em path configurável.
+> - v7: hooks de propagação ativa, review semântico profundo, freshness check, `spec --review-feedback`, `publish-spec`.
+> - v8: rastreabilidade AC × validação via comentário `// covers: AC-X` + `coverage.md`; `coverage` skill nova; `pack-up` injeta tabela no PR; `review --execution` ganha eixo de cobertura.
+> - **v8.1 (patch retrocompatível):** os 3 modos do `review` (`--spec`, `--plan`, `--execution`) passam a executar via subagent (`Explore` pra spec/plan; `general-purpose` pra execution). Elimina viés de auto-validação ("eu escrevi isso, parece bom"). Sem migration — VERSION continua `v8`.
+>
+> Próxima: Fase 4 (v9) — Spec viva (versionamento de mudança de escopo, feature spec eterna + delta + propagação).
 
 ## Como ler este documento
 
@@ -368,6 +376,16 @@ Alto. Esta fase **morre** se a empresa não comprar antes.
 
 ### Recomendação prática
 Comece pela **v6** independentemente do que rolar nas conversas organizacionais. É a fase de maior ROI por esforço. Sem ela, nenhuma das outras é possível, e ela vale por si só. Faça **v7** logo em seguida pela alavanca de "publicar spec no Jira" — vira argumento concreto pra qualquer conversa futura.
+
+---
+
+## Melhorias transversais (não são fases)
+
+Capacidades aplicadas a múltiplas skills sem precisar de versão própria. Aparecem como patches retrocompatíveis (sem migration).
+
+| Patch | O que faz | Aplicado em |
+|-------|-----------|-------------|
+| **v8.1 — peer-review via subagent** | `review --spec/--plan/--execution` delegam pra subagent isolado (`Explore` ou `general-purpose`). Elimina viés de auto-validação | `sub-skills/review/SKILL.md` |
 
 ---
 

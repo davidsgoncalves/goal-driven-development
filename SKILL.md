@@ -29,7 +29,7 @@ install → init → spec → plan → implement → pack-up
 - **init-tree** — variante do `init` para lote: recebe um nó-raiz do Jira (Epic, Story, Task com subtasks), desce a árvore toda, cria pastas de contexto para nós internos e chama `init` para cada folha (subtask real)
 
 **Ferramentas auxiliares (não são parte do fluxo linear):**
-- **review** — Revisa qualidade em 3 modos: spec (`--spec` com semântica profunda; `--quick` pra só lint), descrição+spec vs plano (`--plan`), plano vs execução com cobertura de ACs (`--execution`)
+- **review** — Revisa qualidade em 3 modos: spec (`--spec` com semântica profunda; `--quick` pra só lint), descrição+spec vs plano (`--plan`), plano vs execução com cobertura de ACs (`--execution`). A partir da v8.1, cada modo delega pra **subagent isolado** com contexto fresco — fresh eyes sem viés de auto-validação
 - **publish-spec** — Publica/republica a spec em destinos configuráveis (Jira, Slack, stdout, custom). Auxiliar manual ao hook `after spec`.
 - **coverage** — Gera matriz "AC × validação" pra uma task dentro do fluxo do GOD. Parseia `// covers: AC-X` em testes + lê `coverage.md` (validações manuais). Usado pelo `pack-up` e `review --execution`, ou manual a qualquer momento. Tolerante por design — ACs órfãos viram alerta visual, decisão fica do dev.
 - **status** — Dashboard de tasks em andamento e suas fases

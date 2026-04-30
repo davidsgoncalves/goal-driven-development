@@ -33,7 +33,7 @@ install -> init -> spec -> plan -> implement -> pack-up
 
 | Skill | Descricao |
 |-------|-----------|
-| **review** | Revisao automatica em 3 modos: spec (`--spec` com semantica profunda; `--quick` skipa pra so lint), descricao+spec vs plano (`--plan`), plano vs execucao (`--execution`). Gera relatorios sem corrigir — a skill chamadora decide. |
+| **review** | Revisao automatica em 3 modos: spec (`--spec` com semantica profunda; `--quick` skipa pra so lint), descricao+spec vs plano (`--plan`), plano vs execucao (`--execution`). A partir da v8.1, cada modo delega pra subagent isolado (fresh eyes, sem vies de auto-validacao). Gera relatorios sem corrigir — a skill chamadora decide. |
 | **publish-spec** | Publica/republica a spec em destinos configuraveis (Jira, Slack, stdout, custom). Auxiliar manual ao hook `after spec`. Aceita `--target` (repetivel) e `--dry-run`. |
 | **coverage** | Gera matriz AC × validacao pra uma task dentro do fluxo do GOD. Parseia `// covers: AC-X` em testes + le `coverage.md` (validacoes manuais). Usado pelo `pack-up` e `review --execution`, ou manual a qualquer momento. Tolerante por design — ACs orfaos viram alerta visual, nao falha de processo. |
 | **status** | Dashboard que mostra todas as tasks, em qual fase cada uma esta, branch, se foi aprendida e quantos PRs tem. |
