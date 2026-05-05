@@ -19,6 +19,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 - `--refactor` — modula tom: desvios viram "oportunidade de refator alinhada com architecture.md".
 - `--preserve` — modula tom: cada desvio detectado pede justificativa explícita ("preservar padrão atual mesmo divergindo").
 - Sem flag → tom neutro: lista desvios e oferece (a) refatorar, (b) preservar com justificativa, (c) ajustar plan.
+- `--debug` *(v10.6)* — registra passos em `debug.log` via `_lib/debug_log.py`. Pontos: freshness (2), arquitetura (5.5), Q&A técnica (6), review (8). Ver SKILL raiz.
 
 ## Otimização v10.2
 

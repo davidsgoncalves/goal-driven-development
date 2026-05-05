@@ -13,6 +13,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 
 - `--skip-code-like-me` — Desativa a aplicação da sub-skill `code-like-me`. Nesse modo livre, a IA segue o plano e as convenções do projeto, mas tem liberdade para escolher a abordagem sem precisar replicar estilo dev-por-dev. **Sem esta flag, `code-like-me` é aplicado automaticamente.**
 - `--skip-patterns-check` — Desativa a verificação contra `GOD/learned-patterns.md` (passo 6.5). Útil quando o usuário quer rodar implement rapidamente sem o ajuste automático de regras. **Sem esta flag, a verificação roda sempre que o arquivo existe e tem pelo menos uma regra.**
+- `--debug` *(v10.6)* — registra passos em `debug.log` via `_lib/debug_log.py`. Pontos: freshness (3), preparar git (2.05), execução (5), anotações covers/rules (5.5/5.6), patterns check (6.5). Ver SKILL raiz.
 
 ## Otimização v10.2
 

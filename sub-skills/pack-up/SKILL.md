@@ -9,6 +9,28 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 
 > Executa o fluxo de finalização da task: commit, push, criação de PR e ações finais — tudo conforme definido no `patterns.md`. Processos customizados (rodar testes, linter, notificações, etc.) são configurados pelo usuário nos hooks `before pack-up`/`after pack-up` em `GOD/hooks.md`.
 
+## Flags
+
+- `--debug` *(v10.6)* — quando presente, registra cada passo em `GOD/tasks/{cod}/debug.log` via `_lib/debug_log.py`. Opt-in por invocação. Sem flag, zero overhead. Ver "Debug log opt-in" no SKILL.md raiz pra padrão de chamada.
+
+## Pontos de log (quando `--debug` ativo)
+
+Pra cada passo abaixo, chamar `python3 sub-skills/_lib/debug_log.py` com:
+
+| Passo | step | action | details típico |
+|-------|------|--------|----------------|
+| 0 hook before | `"0 before pack-up"` | `skipped` ou `executed` | `{"hook_present": false}` |
+| 2.5 batch | `"2.5 batch validate"` | `batch_consumed` ou `fallback_llm` | `{"python3": "3.13", "ok": true, "acs": 4, "diff_files": 12}` |
+| 4 review | `"4 review --execution"` | `delegated` | `{"mode": "inline", "from_config": true}` |
+| 4.5 coverage | `"4.5 coverage"` | `batch_consumed` ou `script_delegated` ou `fallback_llm` | `{"orphans": 1}` |
+| 4.6 rules | `"4.6 rules"` | `skipped` ou `batch_consumed` | `{"applicable_rules_count": 0}` |
+| 5 commit | `"5 commit"` | `completed` | `{"files_committed": 12}` |
+| 6 push | `"6 push"` | `completed` | `{}` |
+| 7 PR | `"7 pr create"` | `delegated` ou `fallback_llm` | `{"description_size_bytes": 1450}` |
+| 8 status update | `"8 status update"` | `script_delegated` ou `fallback_llm` | `{"phase": "packed-up"}` |
+
+Sem `--debug`, **pular todas essas chamadas**. Skill funciona idêntica.
+
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:

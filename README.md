@@ -125,6 +125,7 @@ GOD invoca scripts Python pra trabalho determinístico — economia significativ
 - `update_status.py` — read-modify-write determinístico de YAML frontmatter.
 - `gen_pr_description.py` — markdown do PR description a partir de JSON.
 - `pack_up_validate.py` *(v10.5)* — orquestrador batch do pack-up: roda coverage + rules + freshness + lint numa **única chamada**, retorna JSON consolidado.
+- `debug_log.py` *(v10.6)* — append de evento JSON em `debug.log` da task. Acionado por `--debug` em skills do fluxo principal.
 
 Todos: Python 3.8+ stdlib only, cross-platform (macOS, Linux, WSL), sem dependências externas.
 
@@ -148,6 +149,59 @@ GOD é versionado em fases (v6, v7, v8, v9, v10) que entregam capacidades semân
 | v10.3 | Peer-review opt-out via config (`peer_review_default`). |
 | v10.4 | Context blob (cache de leituras) + quebra de `review` em 3 sub-skills. |
 | v10.5 | Batch consolidado de validação no pack-up (`pack_up_validate.py`). |
+| v10.6 | Debug log opt-in via flag `--debug` (registra ações por invocação em `debug.log`). |
+
+## Debugando custo de tokens (v10.6)
+
+GOD não tem telemetria embutida (LLM não acessa contador de tokens). Mas você pode capturar **ações + sinais correlacionados** com custo passando flag `--debug` em qualquer skill do fluxo principal:
+
+```
+spec PROJ-123 --debug
+plan PROJ-123 --debug
+implement PROJ-123 --debug
+pack-up PROJ-123 --debug
+```
+
+Cada invocação cria/append em `GOD/tasks/PROJ-123/debug.log` (JSON Lines). Sem `--debug`, **nenhum log é escrito** — zero overhead em uso normal. Opt-in **explícito por invocação** (não há flag de sessão persistente — design intencional pra evitar "esqueci ligado").
+
+### O que entra no log
+
+Cada evento captura:
+- `ts` — timestamp ISO 8601 UTC
+- `skill` — qual skill (init, spec, plan, implement, pack-up)
+- `step` — passo lógico (ex: "4.5 coverage", "0 hook before")
+- `action` — verbo curto (`entered`, `delegated`, `fallback_llm`, `batch_consumed`, `skipped`, `completed`, `error`)
+- `details` — JSON livre com sinais correlacionados (diff_files, acs, mode subagent/inline, etc.)
+- `duration_ms` *(opcional)* — latência do passo
+
+### Como analisar
+
+```bash
+# evento por evento (com jq)
+cat GOD/tasks/PROJ-123/debug.log | jq .
+
+# contagem por skill
+cat GOD/tasks/PROJ-123/debug.log | jq -r .skill | sort | uniq -c
+
+# detectar fallback LLM (rota cara)
+cat GOD/tasks/PROJ-123/debug.log | jq 'select(.action=="fallback_llm")'
+
+# total de eventos
+wc -l GOD/tasks/PROJ-123/debug.log
+```
+
+Combina com o token report do Claude Code — você correlaciona "esse passo teve diff de 5000 linhas e foi caminho fallback" com o pico de tokens.
+
+### Diagnosticando pack-up caro
+
+Se pack-up está custoso, rode `pack-up PROJ-X --debug` e olhe o log:
+
+- **Apareceu `fallback_llm` em algum passo?** → script Python falhou ou python3 ausente. Rode `doctor` pra ver.
+- **`mode: subagent` no review?** → considere `peer_review_default: inline` em `config.md` (v10.3) se o tradeoff de fresh eyes compensar.
+- **`diff_files: 50+`?** → task grande, custo é proporcional ao diff. Sem otimização possível além de tasks menores.
+- **Bloco `4.6 rules` ainda rodando mesmo sem domains?** → bug, abrir issue.
+
+`doctor` lista tasks com debug.log presente e permite ver visão geral.
 
 ## Migração entre versões
 
@@ -172,7 +226,8 @@ GOD/                                  # framework
     │   ├── freshness_check.py
     │   ├── update_status.py
     │   ├── gen_pr_description.py
-    │   └── pack_up_validate.py       # batch consolidado (v10.5)
+    │   ├── pack_up_validate.py       # batch consolidado (v10.5)
+    │   └── debug_log.py              # debug log opt-in (v10.6)
     ├── install/
     │   ├── SKILL.md
     │   └── templates/                # templates lazy-loaded (v10.2)

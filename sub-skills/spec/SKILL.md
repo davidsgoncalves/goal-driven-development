@@ -17,6 +17,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 - `--quick` — pula verificações semânticas profundas do `review --spec` (mantém só lint estrutural). Útil pra iteração rápida em tasks normais. **Em modo `--quick`, hook `after spec` é executado mas a sugestão de `publish-spec` ao final é silenciada.**
 - `--type=normal|critical` — força o perfil da task, dispensando heurística + confirmação. **Não há `--type=trivial` aqui** — task trivial não precisa de spec; o usuário deve rodar `init --type=trivial` diretamente.
 - `--target <destino>` *(v10.1)* — após escrever spec canônica em `<specs_path>/tasks/{cod}.md`, publicar **adicionalmente** no destino. Valores: `jira`, `slack`, `stdout`, `clipboard`, `file:<path>`, `notion`, ou custom definido em `hooks.md`. Reusa internamente a sub-skill `publish-spec` — não duplica lógica. Sem `--target`, comportamento atual (não publica automaticamente; `publish-spec` continua sendo skill separada pra invocação manual).
+- `--debug` *(v10.6)* — registra ações em `GOD/tasks/{cod}/debug.log` via `_lib/debug_log.py`. Opt-in por invocação. Pontos críticos a logar: detecção de perfil (1.5), análise heurística (5.5), Q&A (6), self-validação (8.5), review (9), publicação (10.5). Ver "Debug log opt-in" no SKILL.md raiz.
 
 ## Instruções
 

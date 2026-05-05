@@ -126,6 +126,30 @@ Scripts esperados (v10.2 + v10.5):
 
 Listar `sub-skills/review-spec/SKILL.md`, `review-plan/SKILL.md`, `review-execution/SKILL.md`. Severidade ❌ se faltar — `review` wrapper depende delas.
 
+### 7.6. Bloco "Debug logs (v10.6)"
+
+Listar tasks com `GOD/tasks/{cod}/debug.log` presente. Pra cada:
+- Contagem de eventos (linhas do JSON Lines)
+- Última atualização (timestamp do arquivo)
+- Tamanho
+
+Exemplo de output:
+
+```
+┌─ Debug logs (v10.6) ────────────────────────────────────────────────────
+│
+│  ℹ️ Debug log é opt-in via flag `--debug`. Sem flag, nenhum log é escrito.
+│  ℹ️ 2 tasks com debug.log:
+│     • PROJ-123: 47 eventos, atualizado 2026-05-05T15:30Z, 8.2kb
+│     • PROJ-456: 23 eventos, atualizado 2026-05-04T10:15Z, 3.1kb
+│
+└─────────────────────────────────────────────────────────────────────────
+```
+
+Se nenhuma task tem `debug.log`, omitir bloco ou mostrar `ℹ️ Nenhum debug log encontrado (use --debug em init/spec/plan/implement/pack-up pra ativar)`.
+
+Severidade: sempre ℹ️ (informativo, nunca ⚠️ ou ❌).
+
 ### 8. Bloco "Tasks ativas"
 
 Varrer `GOD/tasks/*/` e validar:

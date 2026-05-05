@@ -36,6 +36,7 @@ spec → [publish-spec] → init → plan → implement → pack-up
 
 - `--type=trivial` — atalho pra mudanças cosméticas (copy, typo, dep upgrade) que não justificam spec. Cria estrutura mínima sem exigir spec prévia. **Spec não é gerada nesse modo.** Plano e implementação seguem fluxo normal a partir da estrutura criada.
 - `--type=normal|critical` — apenas registra o perfil em `status.md`. Spec deve ter sido produzida pela skill `spec` antes desta invocação. Útil pra coerência de status (ex: dashboards filtrarem por perfil).
+- `--debug` *(v10.6)* — registra passos em `debug.log` via `_lib/debug_log.py`. Pontos: identificar task (1), criar estrutura (3), hooks (0/4). Ver SKILL raiz.
 
 ## Invocação programática
 

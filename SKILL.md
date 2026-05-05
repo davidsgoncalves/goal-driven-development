@@ -60,6 +60,8 @@ A partir da v10.2, processos puramente determinísticos (parsing de comentários
 
 **Garantia crítica:** **falha de script NUNCA interrompe o processo da skill.** Skill sempre tem caminho fallback funcional via LLM. Scripts são otimização, não dependência rígida.
 
+**Garantia de carregamento sob demanda:** scripts em `sub-skills/_lib/*.py` **NUNCA devem ser lidos via tool Read** pelo agent. Apenas executados via Bash. Eles não são skills (não têm SKILL.md, não são carregados automaticamente pelo Claude Code). Tratá-los como "leitura pra entender" infla contexto sem ganho — o agente já sabe o **contrato** do script (argumentos + JSON de saída) pela documentação aqui no SKILL.md raiz; conteúdo do script é detalhe de implementação. Mesma regra vale pro helper `debug_log.py` (v10.6) — invocado só quando `--debug` está presente, sem Read em nenhuma circunstância.
+
 **Scripts disponíveis:**
 
 | Script | Função | Skills que delegam |
@@ -154,6 +156,64 @@ Agent({
 ```
 
 Subagent reconhece o cabeçalho `=== arquivo ===` e usa o conteúdo direto. Pra arquivos não pré-carregados (ex: arquivos do diff em `--execution`), continua usando Bash/Read normalmente.
+
+## Debug log opt-in (v10.6)
+
+Skills do fluxo principal (init, spec, plan, implement, pack-up) aceitam flag `--debug` em qualquer invocação. Quando presente, registra ações em `GOD/tasks/{cod}/debug.log` (JSON Lines) usando o helper `sub-skills/_lib/debug_log.py`.
+
+**Sem flag, nenhum log é escrito** — zero overhead em uso normal. Opt-in **explícito** por invocação. Se você quer logar uma sessão completa, passa `--debug` em **cada skill chamada** (não há flag de sessão persistente — design intencional pra evitar "esqueci ligado").
+
+### Quando logar
+
+Pontos crítics em cada skill, no estilo:
+
+```bash
+python3 sub-skills/_lib/debug_log.py \
+  --task {cod} \
+  --skill {nome} \
+  --step "X.Y descrição" \
+  --action {verbo_curto} \
+  --details '{"key": "value"}' \
+  --god-root {god_root}
+```
+
+Verbo de `--action` (convenção):
+- `entered` — passo iniciado
+- `delegated` — delegou pra script Python ou subagent (`--details` inclui qual)
+- `fallback_llm` — caiu pro caminho LLM (script falhou ou ausente)
+- `batch_consumed` — usou JSON do batch (v10.5)
+- `context_blob_used` — consumiu artefato pré-carregado (v10.4)
+- `skipped` — passo pulado (ex: hook skip-hook, profile trivial)
+- `completed` — passo terminou OK
+- `error` — falha que não interrompeu (caiu pro fallback)
+
+`--details` é JSON livre. Inclua sinais correlacionados com custo: `acs` (contagem), `diff_files`, `diff_size_bytes`, `mode` (subagent/inline), `subagent_type`.
+
+### Análise depois
+
+Pra ler o log:
+
+```bash
+cat GOD/tasks/{cod}/debug.log | jq .            # com jq instalado
+cat GOD/tasks/{cod}/debug.log                    # sem jq
+```
+
+Ou agregar:
+
+```bash
+# quantos eventos por skill
+cat GOD/tasks/{cod}/debug.log | jq -r .skill | sort | uniq -c
+
+# quais passos rodaram fallback_llm
+cat GOD/tasks/{cod}/debug.log | jq 'select(.action=="fallback_llm")'
+```
+
+### Garantias
+
+- **Falha do `debug_log.py` nunca interrompe a skill** — chamada é fire-and-forget. Se o helper falhar (disk cheio, permissão, etc.), o fluxo continua. Padrão de invocação: rodar via Bash em `&` ou capturar erro silenciosamente.
+- **Sem `--debug`, helper nunca é invocado.** Sem flag, zero overhead — agent não toca no script, não menciona, não verifica existência.
+- **Helper nunca é lido via Read tool.** É script Python; agent só **executa** via Bash quando flag está presente. Conteúdo do script não entra no contexto.
+- **Sem skill `debug-log` formal.** O helper é arquivo `.py` em `_lib/`; não há `SKILL.md` correspondente, então Claude Code não carrega o helper automaticamente em invocação alguma.
 
 ## Hooks do fluxo
 
