@@ -44,6 +44,10 @@ Esta skill pode ser invocada:
 - **Interativamente pelo usuário** (fluxo padrão) — após o `spec` rodar.
 - **Programaticamente pela skill `init-tree`** — para cada folha da árvore Jira que ela está processando, depois que `init-tree` produziu specs em batch.
 
+## Otimização v10.2
+
+Quando `python3 ≥ 3.8` está disponível, esta skill delega criação inicial de `status.md` pra `sub-skills/_lib/update_status.py` (mais rápido que LLM gerar YAML manualmente). Falha cai pro Write tradicional. Ver "Delegação pra `_lib/`" no SKILL.md raiz.
+
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:

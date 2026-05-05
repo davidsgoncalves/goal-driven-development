@@ -32,7 +32,7 @@ install → spec → [publish-spec] → init → plan → implement → pack-up
 - **init-tree** — variante de inicialização em lote: recebe um nó-raiz do Jira (Epic, Story, Task com subtasks), desce a árvore, cria pastas de contexto pra nós internos e gera **specs rascunho** pra cada folha em `<specs_path>/tasks/{cod}.md` (modo `batch` da skill `spec`). **Não cria estrutura de execução por folha** — o usuário roda `spec {cod}` interativo pra refinar e `init {cod}` quando pronto.
 
 **Ferramentas auxiliares (não são parte do fluxo linear):**
-- **review** — Revisa qualidade em 3 modos: spec (`--spec` com semântica profunda; `--quick` pra só lint), descrição+spec vs plano (`--plan`), plano vs execução com cobertura de ACs (`--execution`). A partir da v8.1, cada modo delega pra **subagent isolado** com contexto fresco — fresh eyes sem viés de auto-validação
+- **review** — Revisa qualidade em 3 modos: spec (`--spec` com semântica profunda; `--quick` pra só lint), descrição+spec vs plano (`--plan`), plano vs execução com cobertura de ACs (`--execution`). A partir da v8.1, cada modo delega pra **subagent isolado** com contexto fresco — fresh eyes sem viés de auto-validação. **v10.3:** modo configurável via `peer_review_default` em `GOD/config.md` (valores: `subagent` default, `inline`, `skip`). Flags CLI `--subagent`/`--inline`/`--skip` overridem pontual.
 - **publish-spec** — Publica/republica a spec em destinos configuráveis (Jira, Slack, stdout, custom). Auxiliar manual ao hook `after spec`.
 - **coverage** — Gera matriz "AC × validação" pra uma task dentro do fluxo do GOD. Parseia `// covers: AC-X` em testes + lê `coverage.md` (validações manuais). Usado pelo `pack-up` e `review --execution`, ou manual a qualquer momento. Tolerante por design — ACs órfãos viram alerta visual, decisão fica do dev.
 - **status** — Dashboard de tasks em andamento e suas fases
@@ -44,6 +44,116 @@ install → spec → [publish-spec] → init → plan → implement → pack-up
 - **clean-up** — Arquiva tasks em `packed-up` cujos PRs já foram mergiados (move para `GOD/tasks/.archived/`). Oferece rodar `learn` antes de arquivar tasks ainda não aprendidas
 - **code-like-me** — Implementação cirúrgica que segue padrões do projeto (usada como flag do implement)
 - **upgrade** — Migra instalações do GOD de uma versão para outra (expansível por versão)
+
+## Delegação pra `sub-skills/_lib/` (v10.2)
+
+A partir da v10.2, processos puramente determinísticos (parsing de comentários, lint estrutural, atualização de YAML, geração de tabelas) são feitos por **scripts Python** em `sub-skills/_lib/` em vez do LLM. Economiza tokens significativamente.
+
+**Padrão de delegação** (sub-skills referenciam este padrão; não repetir lógica em cada SKILL.md):
+
+1. **Verificar python3 ≥ 3.8** disponível: `command -v python3 && python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)'`.
+2. **Verificar script existe**: `[ -f sub-skills/_lib/<script>.py ]`.
+3. **Rodar via Bash**: `python3 sub-skills/_lib/<script>.py <args>`. Capturar stdout (JSON) e stderr separados.
+4. **Se exit 0** → parsear JSON da stdout, usar resultado.
+5. **Se exit != 0 ou exception** → **avisar usuário UMA vez** com `⚠️ Script {nome} falhou (exit {code}): {stderr resumido}. Caindo pro fallback LLM.` e seguir o caminho fallback documentado na própria skill.
+6. **Se python3 ausente** → seguir fallback silenciosamente (instalar python3 já foi sugerido pelo `install` ou `doctor`).
+
+**Garantia crítica:** **falha de script NUNCA interrompe o processo da skill.** Skill sempre tem caminho fallback funcional via LLM. Scripts são otimização, não dependência rígida.
+
+**Scripts disponíveis:**
+
+| Script | Função | Skills que delegam |
+|--------|--------|---------------------|
+| `parse_coverage.py` | Matriz AC × validação a partir do diff/repo | coverage, pack-up, review --execution |
+| `parse_rules.py` | Parser de `// rule: BR-X` no diff (v10) | pack-up, review --execution |
+| `parse_spec.py` | Extrai frontmatter + REQs + ACs da spec | plan, implement, review |
+| `validate_spec.py` | Lint estrutural da spec (REQ tem AC, IDs, palavras-tabu) | spec passo 8.5, review --spec |
+| `freshness_check.py` | Compara spec_version atual × spec_version_consumed | plan, implement |
+| `update_status.py` | Read-modify-write de status.md | spec, init, plan, implement, pack-up, learn, pause, resume, update-spec |
+| `gen_pr_description.py` | Markdown do PR description a partir de JSON | pack-up |
+
+Todos os scripts: Python 3.8+ stdlib only. Cross-platform (macOS, Linux, WSL). Rodar `python3 <script>.py --help` pra ver argumentos.
+
+## Padrão de context blob (v10.4)
+
+A partir da v10.4, skills do fluxo principal podem **passar artefatos pré-lidos** pra sub-skills/subagents em vez de cada um ler do disco. Reduz leituras redundantes (mesmo `status.md` lido 3x numa execução de pack-up vira 1x).
+
+### Quando usar
+
+Skills que orquestram outras skills/subagents:
+- **`pack-up`** — chama `coverage`, `review --execution`. Carrega context no início e passa adiante.
+- **`spec`** — chama `review --spec`. Pode passar context (input bruto, dados Jira, knowledge consultado).
+- **`plan`** — chama `review --plan`. Pode passar context (spec, description).
+
+### Estrutura do context blob
+
+JSON serializável com chaves específicas por skill. Exemplo pra pack-up:
+
+```json
+{
+  "task": "PROJ-123",
+  "status": "<conteúdo de GOD/tasks/PROJ-123/status.md>",
+  "plan": "<conteúdo de plan.md>",
+  "spec": "<conteúdo da spec, se cabe inline>",
+  "spec_path": "docs/specs/tasks/PROJ-123.md",
+  "coverage": "<conteúdo de coverage.md, se existe>",
+  "patterns": "<conteúdo de GOD/patterns.md>",
+  "hooks": "<conteúdo relevante de hooks.md>"
+}
+```
+
+### Threshold pra arquivos grandes (lazy via path)
+
+Pra evitar prompt gigante:
+
+```
+Se um arquivo > 8000 chars (~2000 tokens):
+  - NÃO incluir o conteúdo no context blob
+  - Incluir apenas o path (ex: "spec_path": "...")
+  - Sub-skill/subagent decide se lê tudo ou faz scan parcial
+Senão:
+  - Incluir conteúdo inline
+```
+
+Threshold é heurístico, não rígido. Skill chamadora decide.
+
+### Como sub-skill consome
+
+Sub-skills/subagents ficam **flexíveis** — aceitam context inline mas têm fallback pra ler do disco. Padrão:
+
+```
+1. Verificar se context foi passado (chave existe e não é vazia).
+2. Se sim: usar direto, sem invocar Read.
+3. Se não: ler do disco (caminho original v10.3).
+```
+
+**Garantia:** retrocompat preservada. Invocação sem context blob continua funcionando.
+
+### Como subagent recebe
+
+Skill chamadora invoca `Agent` tool com prompt que inclui o context:
+
+```
+Agent({
+  description: "Review execution PROJ-123",
+  prompt: """
+  CONTEXTO PRÉ-CARREGADO (não invoque Read pra estes arquivos):
+  
+  === status.md ===
+  {context.status}
+  
+  === plan.md ===
+  {context.plan}
+  
+  ...
+  
+  INSTRUÇÕES:
+  {prompt original do modo}
+  """
+})
+```
+
+Subagent reconhece o cabeçalho `=== arquivo ===` e usa o conteúdo direto. Pra arquivos não pré-carregados (ex: arquivos do diff em `--execution`), continua usando Bash/Read normalmente.
 
 ## Hooks do fluxo
 
@@ -66,8 +176,12 @@ Ferramentas auxiliares (learn, update-plan, review, status, pause, resume, code-
 | `plan` | `sub-skills/plan/SKILL.md` | Planejar a implementação técnica (HOW) |
 | `implement` | `sub-skills/implement/SKILL.md` | Executar o plano. Freshness check estendido (v9) detecta drift de spec via changelog. |
 | `pack-up` | `sub-skills/pack-up/SKILL.md` | Finalizar e entregar a task. Carimba `spec_version_delivered` no PR. |
-| `review` | `sub-skills/review/SKILL.md` | Revisão automática (chamada por plan e pack-up) |
+| `review` | `sub-skills/review/SKILL.md` | **(v10.4)** Wrapper de roteamento — delega pra `review-spec`/`review-plan`/`review-execution`. Mantém invocação `review --modo` retrocompatível |
+| `review-spec` | `sub-skills/review-spec/SKILL.md` | **(v10.4)** Verificações específicas do modo `--spec` (estrutura + lint + semântica). |
+| `review-plan` | `sub-skills/review-plan/SKILL.md` | **(v10.4)** Verificações específicas do modo `--plan` (cobertura ACs, scope creep, considerações arquiteturais). |
+| `review-execution` | `sub-skills/review-execution/SKILL.md` | **(v10.4)** Verificações específicas do modo `--execution` (passos executados, cobertura, BRs anotadas). |
 | `status` | `sub-skills/status/SKILL.md` | Ver estado das tasks |
+| `doctor` | `sub-skills/doctor/SKILL.md` | **(v10.2)** Diagnóstico do ambiente: python3, git, gh, MCPs, GOD/ consistência, scripts em `_lib/`, tasks ativas. Read-only. |
 | `update-spec` | `sub-skills/update-spec/SKILL.md` | **(v9)** Aplicar mudança de escopo na spec pós-init. Bumpa `spec_version`, escreve em `{cod}-changelog.md` |
 | `update-plan` | `sub-skills/update-plan/SKILL.md` | Alterar plano durante implementação |
 | `pause` | `sub-skills/pause/SKILL.md` | Pausar task em andamento e registrar observação |
@@ -96,6 +210,7 @@ Quando o usuário interagir, identifique a intenção e delegue para a sub-skill
 | "implementar", "executar", "codar", "desenvolver" | `implement` |
 | "finalizar", "entregar", "pack up", "commitar e subir PR" | `pack-up` |
 | "status", "como estão as tasks", "dashboard" | `status` |
+| "doctor", "god doctor", "checar god", "verificar instalação", "está tudo ok?", "diagnosticar god", "o que falta no setup" | `doctor` |
 | "mudar o plano", "atualizar plano", "o plano mudou" | `update-plan` |
 | "pause", "pausar", "pausar task", "tô travado", "parar aqui", "retomo depois" | `pause` |
 | "resume", "retomar", "continuar task", "voltar na task", "destravei" | `resume` |
@@ -134,6 +249,7 @@ Antes de delegar para uma sub-skill, verifique se os pré-requisitos foram cumpr
 | `implement` | `GOD/tasks/{cod}/plan.md` deve estar preenchido e `status.md` deve ter `branch` e `branch_base` populados (plan executado). Em modo trivial, plan é pulado e implement resolve a branch. Se algo essencial faltar, sugerir rodar `plan` primeiro |
 | `pack-up` | Deve haver alterações no git para commitar (implement executado). Se não houver, informar o usuário |
 | `update-spec` | `GOD/tasks/{cod}/status.md` deve existir (init executado) e `<spec_path>` ainda apontar pra arquivo válido. Se status.md ausente, sugerir `spec --review-feedback` em vez |
+| `doctor` | Nenhum — skill é read-only e detecta o que existe no ambiente |
 | `update-plan` | `GOD/tasks/{cod}/plan.md` deve existir e estar preenchido |
 | `pause` | `GOD/tasks/{cod}/status.md` deve existir e `phase ≠ packed-up`; não deve estar já pausada |
 | `resume` | `GOD/tasks/{cod}/status.md` deve existir com `paused: true` |
@@ -310,10 +426,11 @@ Fluxo v9 (spec-first):
 Ferramentas auxiliares:
   • `update-spec`  — *(v9)* Mudança de escopo pós-init: bumpa spec_version, escreve em changelog
   • `update-plan`  — Alterar plano durante implementação
-  • `coverage`     — Matriz AC × validação pra uma task
+  • `coverage`     — Matriz AC × validação pra uma task (v10.2: delega pra script Python quando disponível)
   • `learn`        — Transformar task em conhecimento (ativação explícita)
   • `clean-up`     — Arquivar tasks em `packed-up` cujos PRs já foram mergiados
   • `status`       — Ver dashboard completo
+  • `doctor`       — *(v10.2)* Diagnóstico do ambiente: python3, git, gh, MCPs, GOD/ consistência. Read-only.
   • `pause`        — Pausar task em andamento e registrar observação no changelog
   • `resume`       — Retomar task pausada
   • `upgrade`      — Migrar para versão mais nova do GOD

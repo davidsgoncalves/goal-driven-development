@@ -20,6 +20,14 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 - `--preserve` — modula tom: cada desvio detectado pede justificativa explícita ("preservar padrão atual mesmo divergindo").
 - Sem flag → tom neutro: lista desvios e oferece (a) refatorar, (b) preservar com justificativa, (c) ajustar plan.
 
+## Otimização v10.2
+
+Quando `python3 ≥ 3.8` está disponível, esta skill delega tarefas determinísticas pra `sub-skills/_lib/`:
+- **Freshness check** (passo 2) → `freshness_check.py`
+- **Atualizar `status.md`** (passo 9) → `update_status.py`
+
+Falha do script cai pro caminho LLM automaticamente (ver "Delegação pra `_lib/`" no SKILL.md raiz).
+
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:

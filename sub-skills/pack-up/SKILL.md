@@ -42,6 +42,42 @@ A **branch de destino do PR** (base target) e o **nome da branch da task** não 
 - Caso contrário, perguntar ao usuário o código da task (ex: `PROJ-123`)
 - Ler `GOD/tasks/{cod-da-task}/description.md` para obter título e descrição da task
 
+### 2.5. Carregar context blob + batch validação (v10.4 + v10.5)
+
+Carrega **uma vez** todos os artefatos relevantes e roda validação consolidada. Eliminou ~5 invocações sequenciais (coverage + parse_rules + freshness + lint + montagem PR data) por **1 chamada Python**.
+
+**Caminho preferido (v10.5):** delegar pra `sub-skills/_lib/pack_up_validate.py`:
+
+```bash
+python3 sub-skills/_lib/pack_up_validate.py \
+  --task {cod} \
+  --branch-base {branch_base} \
+  --specs-path {specs_path} \
+  --god-root {god_root} \
+  --source-root {source_root}
+```
+
+Capturar JSON único contendo:
+- `spec` (path, version, applicable_rules, lista de REQs com contagem de ACs)
+- `coverage` (matriz AC × validação completa + markdown pronto)
+- `rules` (BRs aplicáveis × anotadas + markdown pronto)
+- `freshness` (drift booleano, current/consumed)
+- `lint` (blockers + warnings estruturais)
+- `pr_description_data` (pronto pra `gen_pr_description.py`)
+
+Esse JSON é o **context blob** dos passos seguintes:
+- Passo 4 (review --execution) consome direto — não re-roda coverage/rules.
+- Passo 4.5 (coverage) → já tem `coverage.markdown` pronto, pula chamada.
+- Passo 4.6 (rules) → já tem `rules.markdown`, pula chamada.
+- Passo 7 (PR description) → passa `pr_description_data` direto pra `gen_pr_description.py`.
+
+**Arquivos adicionais a carregar separadamente** (não cabem no batch — são contextuais):
+- `GOD/tasks/{cod}/plan.md` (alimenta review --execution).
+- `GOD/patterns.md` (convenções pro commit/PR).
+- `GOD/hooks.md` (lido uma vez pra todos os hooks da skill).
+
+**Fallback (LLM)** se python3 ausente ou batch falhou: cada passo (4.5, 4.6, etc.) executa caminho LLM individualmente como na v10.2.
+
 ### 3. Verificar estado do git
 
 Verificar o estado atual do repositório:
@@ -53,63 +89,48 @@ Se não houver alterações, informar o usuário e encerrar.
 
 ### 4. Revisão plano vs execução
 
-Antes de commitar, chamar a sub-skill `review --execution` passando o código da task. A partir da v8, esse review já inclui o eixo de cobertura de ACs.
+Chamar a sub-skill `review --execution` passando o código da task **e o context blob carregado no passo 2.5** (v10.4). Review usa context inline em vez de re-ler arquivos.
 
 - Se o relatório retornar **Aprovado**: prosseguir com o commit
 - Se o relatório retornar **Ajustes necessários**: apresentar o relatório ao usuário e perguntar se deseja corrigir antes de continuar ou prosseguir mesmo assim
 - Se o relatório retornar **Reprovado**: apresentar o relatório ao usuário e pausar o pack-up até que as correções sejam feitas
 
-### 4.5. Gerar matriz de cobertura (a partir da v8)
+### 4.5. Matriz de cobertura (v8 — consumida do batch v10.5)
 
-Chamar a sub-skill `coverage --task {cod} --format markdown` pra gerar a tabela AC × validação que vai entrar no PR description.
+**Caminho preferido (v10.5):** se passo 2.5 rodou `pack_up_validate.py`, o JSON já contém `coverage.markdown` pronto. **Não re-rodar nada** — apenas extrair do JSON e usar no passo 7.
 
-- Capturar a saída em markdown — será usada no passo 7 (criar PR).
-- Se a saída indicar **ACs órfãos**, exibir aviso ao usuário no terminal:
+**Fallback (v10.2):** se passo 2.5 caiu pro fallback LLM, delegar pra `sub-skills/_lib/parse_coverage.py --task {cod} --format markdown` via Bash. Capturar stdout markdown.
 
-  > ⚠️ {N} ACs estão sem cobertura registrada (nem teste, nem validação manual). Eles aparecerão como ⚠️ na tabela do PR. Quer (a) voltar pro implement pra anotar, (b) editar `coverage.md` agora, (c) prosseguir mesmo assim?
+**Fallback v2 (LLM puro):** chamar a sub-skill `coverage --task {cod} --format markdown` (caminho original, mais caro).
 
-- Tasks **sem spec** (raras na v8 — só tasks pré-v6 que sobreviveram): `coverage` retorna "não aplicável", e este passo vira no-op (nenhuma tabela injetada).
+Em qualquer caminho:
+- Markdown vai pro passo 7 (PR description).
+- Se ACs órfãos detectados (campo `coverage.summary.orphaned > 0` no batch JSON, ou alerta da skill), avisar:
 
-### 4.6. Gerar tabela de BRs (v10, se `applicable_rules` populado)
+  > ⚠️ {N} ACs sem cobertura registrada. Quer (a) voltar pro implement pra anotar, (b) editar `coverage.md` agora, (c) prosseguir mesmo assim?
 
-Se a spec tem `applicable_rules` no frontmatter (lista não-vazia) e `domains_path` está configurado em `GOD/config.md`:
+- Task sem spec → no-op silencioso (sem tabela).
 
-1. **Parsear comentários `// rule:` no diff da task** (`git diff <branch_base>...HEAD`):
-   - Regex unificada compatível com TS/JS/Ruby/Python/Go/Java/C#: linhas iniciando por `//`, `#` ou `--` seguidas de `rule: BR-<DOMINIO>-<N>`. Mesma família da regex do `// covers:` da v8.
-   - Extrair par `(BR-ID, file:line)` pra cada match.
+### 4.6. Tabela de BRs (v10 — consumida do batch v10.5)
 
-2. **Cruzar com `applicable_rules` da spec:**
-   - Pra cada BR-ID em `applicable_rules`, verificar se aparece em algum match do diff.
-   - Marcar `✅` se anotado, `⚠️` se declarado mas não anotado.
+Se a spec tem `applicable_rules` populado e `domains_path` configurado em `GOD/config.md`:
 
-3. **Gerar tabela markdown:**
+**Caminho preferido (v10.5):** o JSON do passo 2.5 já contém `rules.markdown` pronto + `rules.summary` (total, anotadas, órfãs). Extrair direto.
 
-   ```markdown
-   📜 **BRs aplicáveis × anotadas**
+**Fallback (v10.2):** se batch falhou, delegar pra `sub-skills/_lib/parse_rules.py --task {cod} --branch-base {branch_base} --format markdown`.
 
-   | BR | Status | Anotações no código |
-   |----|--------|---------------------|
-   | BR-PAYMENTS-001 | ✅ | src/vakinha.service.ts:42 |
-   | BR-PAYMENTS-007 | ✅ | src/vakinha.service.ts:55, src/meta.guard.ts:18 |
-   | BR-AUTH-003 | ⚠️ | (declarada aplicável mas sem anotação no diff) |
+**Fallback v2 (LLM puro):** parsear `git diff {branch_base}...HEAD` procurando `// rule: BR-X`, cruzar com `applicable_rules`, montar tabela.
 
-   **Resumo:** 3 BRs aplicáveis · 2 anotadas · 1 órfã
-   ```
+Tabela vai pro PR description (passo 7). Se houver BRs órfãs (declaradas mas não anotadas):
 
-4. **Capturar saída** pra injetar no PR description (passo 7).
+> ⚠️ {N} BRs aplicáveis sem anotação no código. Possíveis razões:
+> - A invariante já está enforced em código existente (não tocado por esta task) → adicionar nota em `coverage.md`.
+> - A invariante não cabe nesta task → considerar remover de `applicable_rules`.
+> - Faltou anotar `// rule:` no implement → voltar e anotar.
+>
+> Quer (a) voltar pro implement, (b) editar `coverage.md`, (c) prosseguir?
 
-5. **Alertar BRs órfãs** ao usuário no terminal:
-
-   > ⚠️ {N} BRs aplicáveis declaradas em `applicable_rules` não foram anotadas no código. Possíveis razões:
-   > - A invariante já está enforced em código existente (não tocado por esta task) → adicionar nota em `coverage.md`.
-   > - A invariante não cabe nesta task (será coberta em outra) → considerar remover do `applicable_rules` da spec.
-   > - Faltou anotar `// rule: BR-X` durante o `implement` → voltar e anotar.
-   >
-   > Quer (a) voltar pro implement, (b) editar `coverage.md` pra justificar, (c) prosseguir mesmo assim?
-
-   Default tolerante — não bloqueia o pack-up. Decisão fica do dev.
-
-6. **Tasks sem `applicable_rules`** (lista vazia ou ausente, ou `domains_path` desativado): pular este passo silenciosamente. Nenhuma tabela injetada no PR.
+Default tolerante — não bloqueia. Tasks sem `applicable_rules` ou com `domains_path` desativado pulam este passo silenciosamente.
 
 ### 5. Commit
 
@@ -124,8 +145,13 @@ Fazer push do branch para o remote:
 - `git push -u origin {branch-atual}`
 - Se o push falhar, informar o usuário
 
-### 7. Criar PR
+### 7. Criar PR (otimizado v10.2)
 
+**Caminho preferido:** montar JSON com `{task, summary, spec_path, spec_version_delivered, reqs_covered, coverage_markdown, rules_markdown, changelog_path}` e delegar pra `sub-skills/_lib/gen_pr_description.py --input -` (stdin). Capturar markdown final, passar pra `gh pr create --body "$body"`.
+
+**Fallback:** LLM monta o markdown linha por linha (caminho original — mantido pra retrocompat).
+
+Em ambos:
 Criar o Pull Request seguindo o **padrão de mensagem de PR** definido no `patterns.md`:
 - Usar `gh pr create` com título e corpo no padrão configurado, apontando para a **branch de destino** = `branch_base` lido de `status.md` (ex: `--base main`). Se `branch_base` estiver ausente (task pré-v4 que não passou pelo novo plan), fallback para o default do repo detectado por `gh`.
 - Se o padrão não estiver definido, usar:
@@ -182,17 +208,28 @@ Criar o Pull Request seguindo o **padrão de mensagem de PR** definido no `patte
   Tasks sem `applicable_rules` ou com `domains_path` desativado não geram este bloco.
 - Capturar a URL do PR retornada por `gh pr create` — será salva no `status.md` no próximo passo
 
-### 8. Atualizar status para `packed-up`
+### 8. Atualizar status para `packed-up` (otimizado v10.2)
 
-Atualizar `GOD/tasks/{cod-da-task}/status.md`:
+**Caminho preferido:** delegar pra `sub-skills/_lib/update_status.py`:
 
+```bash
+python3 sub-skills/_lib/update_status.py --task {cod} \
+  --set phase=packed-up \
+  --set updated_by=pack-up \
+  --set-now updated_at \
+  --append prs={url_do_pr} \
+  --set spec_version_delivered={spec_version}
+```
+
+O script preserva campos não tocados (branch, branch_base, learned). Não sobrescreve `prs` — só faz append.
+
+**Fallback** (LLM): edita o YAML manualmente garantindo:
 - `phase`: `packed-up`
-- `updated_at`: timestamp ISO 8601 em UTC
+- `updated_at`: timestamp ISO 8601 UTC
 - `updated_by`: `pack-up`
-- `branch`, `branch_base`: manter os valores atuais
-- `learned`: **preservar** o valor atual (não alterar — `learn` é quem controla esse campo)
-- `prs`: **fazer append** da URL do PR criado neste pack-up ao array existente. Não sobrescrever — se a task já tinha PRs de pack-ups anteriores (raro, mas possível em tasks com múltiplos repositórios), manter os anteriores
-- `spec_version_delivered` (v9): `spec_version` atual da spec lida no momento do pack-up (int). Sinaliza qual versão da spec foi efetivamente entregue ao revisor. Tasks sem spec (perfil `trivial`) ou pré-v6 → omitir o campo.
+- `prs`: **append** da URL (não sobrescrever array)
+- `spec_version_delivered` (v9): int, omitir em task trivial/pré-v6
+- Demais campos: preservar
 
 Exemplo antes:
 ```yaml

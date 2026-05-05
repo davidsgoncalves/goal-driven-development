@@ -5,21 +5,11 @@ description: |
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
-# Spec — Sub-skill de Especificação (entry point do fluxo)
+# Spec — Entry point do fluxo
 
-> Produz a spec da task: o **WHAT e por quê**, separado do **HOW** (que vive no `plan.md`). Esta é a **primeira skill do fluxo na v9**: aceita input bruto direto, busca dados externos (Jira/Figma), e produz o artefato canônico antes que qualquer estrutura de execução exista. A spec resultante é um artefato canônico do produto, não um arquivo de workflow — vive no `specs_path` configurado, fora da pasta `GOD/tasks/`.
-
-## Posição no fluxo (v9)
-
-```
-spec → [publish-spec] → init → plan → implement → pack-up
-^^^^
-você está aqui (entry point)
-```
-
-A skill `spec` agora **antecede** o `init`. Não depende de `GOD/tasks/{cod}/` existir — escreve direto em `<specs_path>/tasks/{cod}.md`. O `init` virá depois pra criar branch + estrutura de execução.
-
-> **Mudança v9 (spec-first):** spec roda antes de init. Captura input bruto como seção da própria spec (não há mais `description.md` separado em tasks novas). Tasks legacy v8 continuam funcionando — esta skill detecta `GOD/tasks/{cod}/description.md` existente e lê de lá pra retrocompat.
+> Produz a spec da task (WHAT e por quê, separado do HOW). Entry point do fluxo v9: aceita input bruto direto, busca dados em Jira/Figma, escreve em `<specs_path>/tasks/{cod}.md` antes que qualquer estrutura de execução exista.
+>
+> Tasks legacy v8 com `GOD/tasks/{cod}/description.md` são lidas pra retrocompat — descrição é importada como seção `## Input bruto` da spec nova.
 
 ## Flags
 
@@ -431,9 +421,11 @@ Esta seção contém pseudo-código, schemas, decisões arquiteturais embutidas 
 - EARS (`WHEN ... THEN ... SHALL ...`) é o formato preferido pros REQs. Se um REQ não cabe em EARS, prosa imperativa é aceitável.
 - A seção `## Input bruto` preserva o material original sem edição — não tente "limpar".
 
-### 8.5. Self-validação inline (v10.1)
+### 8.5. Self-validação inline (v10.1 — otimizado v10.2)
 
-Antes de delegar pro `review --spec` (subagent isolado), rodar checklist mínimo da seção 5 de `heuristics.md` na própria spec recém-escrita. Corrige o trivial inline; sinaliza pro usuário o que não dá pra corrigir.
+**Caminho preferido (v10.2):** delegar lint estrutural pra `sub-skills/_lib/validate_spec.py --task {cod}`. Recebe JSON com `blocking` e `warnings`. Aplicar correções dos `warnings` corrigíveis inline; pra `blocking`, pedir confirmação ao usuário antes de prosseguir.
+
+**Fallback (LLM)** ou complemento do script: rodar checklist mínimo da seção 5 de `heuristics.md` na spec recém-escrita. Corrige o trivial inline; sinaliza ao usuário o que não dá pra corrigir.
 
 Checks (ordem de execução):
 
@@ -503,201 +495,91 @@ Se a flag `--target <destino>` foi passada na invocação:
 
 Sem `--target`, pular este passo silenciosamente. Usuário pode rodar `publish-spec {cod}` manualmente depois.
 
-### 11. Reportar resultado (apresentação ASCII v10.1)
+### 11. Reportar resultado (ASCII)
 
-Apresentar resultado em blocos ASCII (box-drawing fora de fences pra renderização nativa do terminal). Formato comum + sufixo adaptado ao perfil.
+Saída em blocos ASCII (box-drawing fora de fences) parametrizado por perfil.
 
-**Cabeçalho** (sempre):
+**Estrutura:**
 
 ```
 ═══════════════════════════════════════════════════════════════════════════
-  Spec criada: {cod-da-task} — {título}
-  Perfil: {trivial|normal|critical}  ·  spec_version: {N}
-  REQs: {N}  ·  ACs: {M}  ·  NFRs declarados: {K}/4 dimensões
+  Spec criada: {cod} — {título}
+  Perfil: {normal|critical}  ·  spec_version: {N}
+  REQs: {N}  ·  ACs: {M}  ·  NFRs declarados: {K}/4
 ═══════════════════════════════════════════════════════════════════════════
-```
 
-**Bloco "Onde mora":**
-
-```
 ┌─ Onde mora ─────────────────────────────────────────────────────────────
-│
-│ 📐 Spec canônica: {tasks_dir}/{cod-da-task}.md
-│ 📜 Changelog: (nasce sob demanda — gerado pelo update-spec)
-│ 📡 Publicado em: {hook after spec executou em: jira / slack / —}
-│ {se --target foi usado:} 📤 Target adicional: {target}
-│
+│ 📐 {tasks_dir}/{cod}.md
+│ 📡 Publicado em: {jira/slack/— se hook after spec rodou}
+│ 📤 Target adicional: {se --target foi usado}
 └─────────────────────────────────────────────────────────────────────────
-```
 
-**Bloco "Análise heurística"** (v10.1, se passo 5.5 detectou algo):
-
-```
 ┌─ Análise heurística ────────────────────────────────────────────────────
-│
-│ Excessos tratados: {N}  ({tipos: pseudo-código → notas técnicas, framework leak → reescrito})
-│ Gaps fechados via Q&A: {N}  ({tipos: ator nomeado, NFR LGPD declarada})
-│ Self-validação: {todas as correções inline aplicadas | bloqueada em X — corrigida com usuário}
-│ Tamanho: {simples | feature → quebrada em N subtasks}
-│
+│ Excessos tratados: {N} ({tipos})
+│ Gaps fechados via Q&A: {N}
+│ Self-validação: {ok | corrigido com usuário}
+│ Tamanho: {simples | feature → N subtasks}
 └─────────────────────────────────────────────────────────────────────────
+
+{Bloco "Próximo passo" adaptado}
 ```
 
-**Bloco "Próximo passo"** — adaptado ao perfil:
+**Próximo passo por perfil:**
 
-**Para `profile: critical`:**
-
-```
-┌─ 🚧 Próximo passo (perfil critical) ────────────────────────────────────
-│
-│ Spec ainda não consumida — recomendo travar com stakeholder antes do init:
-│
-│   1. publish-spec {cod}        — publica em Jira/Slack
-│   2. (aguarde validação)
-│   3. spec --review-feedback {cod}  — se vier feedback, incorpora
-│   4. init {cod}                  — quando aprovada, cria estrutura
-│
-└─────────────────────────────────────────────────────────────────────────
-```
-
-**Para `profile: normal`:**
-
-```
-┌─ 💡 Próximo passo (perfil normal) ──────────────────────────────────────
-│
-│   init {cod}        — cria estrutura de execução apontando pra esta spec
-│
-│ 💬 Se feedback chegar antes do init: spec --review-feedback {cod}
-│
-└─────────────────────────────────────────────────────────────────────────
-```
-
-**Em modo `--quick`** ou `--target` já passado: suprimir o bloco "publish-spec" mesmo em perfil critical (já foi publicado ou usuário pediu rápido).
-
-**Em modo feature split (passo 6.5 escolheu (a)):** adicionar bloco listando subtasks geradas:
-
-```
-┌─ Subtasks geradas (N) ──────────────────────────────────────────────────
-│
-│  1. {cod-1} — {título sub 1}     ·  {N REQs}  ·  {M ACs}
-│  2. {cod-2} — {título sub 2}     ·  {N REQs}  ·  {M ACs}
-│  3. ...
-│
-│ Cada subtask tem spec própria em <specs_path>/tasks/{cod-N}.md.
-│ Próximo passo: init {cod-1} (começa pela primeira da ordem de dependência).
-│
-└─────────────────────────────────────────────────────────────────────────
-```
+- **critical:** sugerir `publish-spec {cod}` → aguardar validação → `spec --review-feedback {cod}` se vier feedback → `init {cod}`.
+- **normal:** sugerir `init {cod}` direto. Mencionar `spec --review-feedback` como opção se feedback chegar.
+- **`--quick` ou `--target` usado:** suprimir bloco publish-spec (já publicou ou foi por flag).
+- **feature split (passo 6.5 (a)):** listar subtasks geradas com contagens, sugerir `init {cod-1}` (primeira da ordem).
 
 ---
 
-## Modo `batch` (invocação programática pelo init-tree)
+## Modo `batch` (invocação por init-tree)
 
-Modo não-interativo. Acionado quando `init-tree` chama `spec` programaticamente pra cada folha de uma árvore Jira. Difere do fluxo interativo nestes pontos:
+Modo não-interativo pra processar folhas de árvore Jira em lote.
 
-| Comportamento | Modo interativo (padrão) | Modo `batch` |
-|---------------|--------------------------|---------------|
-| Q&A com usuário (passo 6) | Executa | **Pula** |
-| Heurística de perfil (passo 1.5) | Aplica + confirma | Aplica **sem confirmar** (default `normal`, override só se sinais claros de `critical`) |
-| `review --spec` (passo 9) | Executa | **Pula** |
-| Hook `after spec` (passo 10) | Executa | **Pula** |
-| Frontmatter | `draft` ausente | `draft: true` |
-| Reportar (passo 11) | Imprime instruções pro usuário | Retorna silenciosamente |
+**Diferenças vs interativo:** pula Q&A (passo 6), pula confirmação de perfil, pula `review --spec` (passo 9) e hook `after spec` (passo 10). Marca frontmatter `draft: true`. Retorna silenciosamente.
 
-**Output esperado:** spec rascunho em `<specs_path>/tasks/{cod}.md` que o usuário refina depois rodando `spec {cod}` no modo interativo. Quando o usuário roda `spec {cod}` interativo numa task com `draft: true`, esta skill detecta a flag e oferece:
-
-> 📝 Esta spec foi gerada em batch (rascunho). Quer:
-> - (a) Re-rodar Q&A completa e regenerar a spec (mantém input bruto)
-> - (b) Apenas refinar manualmente o que já está aqui
-> - (c) Manter como rascunho e abortar
-
-Em (a): roda fluxo normal completo (passos 6, 9, 10), substitui `draft: true` por ausência da flag (spec deixa de ser rascunho), incrementa `spec_version`.
-
-Em (b): apenas roda `review --spec`, pede edição manual do conteúdo entre rodadas, mantém ou remove `draft` quando o usuário sinalizar.
+**Refinamento posterior:** quando usuário roda `spec {cod}` interativo em spec com `draft: true`, oferecer:
+- (a) Re-rodar Q&A completa, regenerar spec, remover `draft`, incrementar `spec_version`.
+- (b) Refinar manualmente, rodar só `review --spec`.
+- (c) Manter rascunho e abortar.
 
 ---
 
-## Modo `--review-feedback` (loop de validação leve)
+## Modo `--review-feedback` (loop de validação leve, pré-init)
 
-Modo opt-in. Acionado quando o usuário roda `spec --review-feedback {cod}` numa task que **já tem spec criada**. Serve pra incorporar feedback recebido fora do GOD (comentário no Jira, mensagem no Slack, conversa).
-
-**Quando usar:**
-- O hook `after spec` ou `publish-spec` publicou a spec num canal externo, o stakeholder respondeu, e você quer atualizar a spec antes do `init` rodar.
-- Você revisou a spec sozinho depois e quer ajustar com nota explícita.
-- Stakeholder sinalizou em conversa síncrona algo que muda escopo, mas a feature ainda não passou por `init`.
-
-**Pré-requisitos:**
-- A spec deve existir em `<specs_path>/tasks/{cod}.md`.
-- A task **ainda não passou por `init`** — verificar se `GOD/tasks/{cod}/status.md` existe. Se existir, **abortar** e orientar a usar `update-spec` (que aplica mudança pós-init com propagação de delta).
+Modo opt-in pra incorporar feedback recebido fora do GOD (comentário Jira, Slack, conversa). Roda apenas **antes do init** — se `GOD/tasks/{cod}/status.md` existe, **abortar** e orientar `update-spec`.
 
 **Passos:**
 
-1. **Solicitar o feedback.** Pedir ao usuário pra colar o feedback bruto:
+1. **Solicitar feedback bruto** (cole comentário/mensagem).
+2. **Checar `feedback_cycles`** no frontmatter. Se ≥ 2, alertar:
 
-   > Cole aqui o feedback do stakeholder (pode ser comentário do Jira, mensagem do Slack, ou texto livre). Eu vou identificar quais REQs/ACs ele afeta:
+   > ⚠️ 3ª iteração consecutiva sem init. Considere conversa síncrona. Seguir mesmo assim? (s/n)
 
-2. **Verificar contagem de ciclos.** Ler o frontmatter da spec atual e contar `feedback_cycles`. Se já chegou em 2 ciclos seguidos sem `init` rodar entre eles, **alertar:**
+3. **Analisar feedback × spec** — identificar REQs/ACs afetados.
+4. **Apresentar diff proposto** ("aplicar tudo? (s) ou ajustar antes? (a)").
+5. **Aplicar:** incrementa `spec_version`, atualiza `updated_at`, incrementa `feedback_cycles`. Adiciona bloco em "Histórico de feedback":
 
-   > ⚠️ Esta é a 3ª iteração consecutiva de feedback sem `init` rodar. Isso costuma sinalizar que a conversa precisa ser síncrona (vídeo/presencial), não por troca escrita. Quer (a) seguir mesmo assim, (b) abortar e marcar pra conversa síncrona?
+   ```markdown
+   ### v{N} — {timestamp}
+   **Origem:** {Jira | Slack | conversa | texto livre}
+   **Resumo:** {1 linha}
+   **Aplicado:** {REQs/ACs alterados}
+   ```
 
-3. **Analisar o feedback contra a spec.** Identificar:
-   - Que REQs ou ACs o feedback afeta diretamente
-   - Que mudanças sugere (ampliar AC, adicionar REQ, remover não-objetivo, etc.)
-   - Se o feedback contradiz a spec atual ou apenas amplia
+6. **Re-rodar `review --spec`** (sem `--quick`).
+7. **Re-executar hook `after spec`** se configurado.
+8. **Reportar:** `spec_version v{N-1} → v{N}` + `feedback_cycles {N}/2`.
 
-4. **Apresentar mudanças propostas pro usuário.** Antes de aplicar:
-
-   > Feedback identifica as seguintes mudanças:
-   > - **AC-001.2:** ampliar pra aceitar telefone fixo (8 dígitos)
-   > - **REQ-003:** adicionar (exportação CSV de telefones no admin)
-   > - **AC-002.1:** remover (deprecated pelo PM)
-   >
-   > Aplicar tudo? (s) ou ajustar antes? (a)
-
-5. **Aplicar mudanças e incrementar versão.** Editar a spec:
-   - Aplicar as mudanças aprovadas
-   - Incrementar `spec_version` (ex: 1 → 2)
-   - Atualizar `updated_at` no frontmatter
-   - Adicionar/incrementar campo `feedback_cycles` no frontmatter (default 0; cada `--review-feedback` += 1)
-   - Adicionar bloco no final da spec (ou em seção "Histórico de feedback"):
-
-     ```markdown
-     ## Histórico de feedback
-
-     ### v{N} — {timestamp}
-     **Origem:** {Jira comment | Slack | conversa | texto livre}
-     **Resumo:** {1 linha do que foi pedido}
-     **Aplicado:** {lista de REQs/ACs alterados}
-     ```
-
-6. **Re-rodar `review --spec`** (sem `--quick`) pra validar que a spec atualizada continua consistente.
-
-7. **Re-executar `after spec` hook** se configurado, pra notificar que a spec foi atualizada.
-
-8. **Reportar:**
-
-   > ✅ Spec atualizada com feedback!
-   >
-   > 📐 spec_version: v{N-1} → v{N}
-   > 📝 Mudanças: {resumo}
-   > 🔄 Ciclos de feedback consecutivos: {feedback_cycles}/2 antes de exigir conversa síncrona
-   > 📡 Re-publicada em: {destinos do after spec}
-   >
-   > 💡 Próximo passo: se não há mais feedback esperado, rode `init {cod}`. Se outro ciclo chegar, `spec --review-feedback {cod}` de novo.
-
-**Reset do contador `feedback_cycles`:**
-- `init` rodando com sucesso → reset pra 0 (a spec foi consumida na criação da task).
-- `update-spec` rodando → reset pra 0 (mudança formal pós-init usa outro mecanismo).
+**Reset do contador:** `init` ou `update-spec` rodando = reset pra 0.
 
 ---
 
 ## Guard-rails
 
-- **Esta skill é a única dona da spec inicial.** O `plan` lê e referencia, mas não escreve. O `pack-up` linka, mas não edita. `update-spec` (v9) escreve mudanças pós-init.
-- **Esta skill não escreve em `GOD/knowledge.md` nem em `GOD/learned-patterns.md`.** Apenas a skill `learn` pode fazê-lo.
-- **Esta skill não toca em git.** Não cria branch, não comita.
-- **Esta skill não cria `GOD/tasks/{cod}/`.** Estrutura de execução é responsabilidade do `init`. A spec vive em `<specs_path>/`, isolada da execução.
-- **Esta skill não fala de implementação.** Q&A, REQs e ACs são puramente sobre comportamento e escopo. Se um detalhe técnico aparecer, ele vai pra anotação separada que o `plan` consome — não pro corpo da spec.
-- **Modo `--review-feedback` só roda antes do `init`.** Se `GOD/tasks/{cod}/status.md` existe, abortar e orientar `update-spec`.
-- **Hooks `before/after spec` (v7).** Continuam disparando sempre, independente do perfil. O perfil afeta apenas a sugestão final ao usuário sobre rodar `publish-spec`.
+- Dona única da spec inicial. `update-spec` (v9) escreve mudanças pós-init.
+- Não fala de implementação — REQs/ACs são puramente comportamento.
+- Não cria `GOD/tasks/{cod}/` (responsabilidade do `init`), não toca git.
+- `--review-feedback` só roda antes do `init` (status.md ausente).
 - **Task trivial não passa por aqui.** Spec aborta com sugestão de `init --type=trivial`. Não tente forçar uma "spec mínima" pra typo — isso polui o repo de specs.

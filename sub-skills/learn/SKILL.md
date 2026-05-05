@@ -15,6 +15,10 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 >
 > A Ação 2 é executada normalmente depois da revisão do PR — o usuário tem feedback próprio e da equipe em mãos. Se o usuário não tem nada a registrar, pula (não força).
 
+## Otimização v10.2
+
+Update de `status.md` (campo `learned: true`) delega pra `sub-skills/_lib/update_status.py` quando python3 disponível. Fallback LLM/Edit mantido.
+
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:

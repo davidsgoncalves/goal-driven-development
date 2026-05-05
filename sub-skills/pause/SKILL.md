@@ -18,6 +18,10 @@ tools: Read, Glob, Grep, Bash, Edit, Write
    - Decisão do usuário pendente que bloqueia progresso
    - Ambiguidade no plano que exige clarificação antes de prosseguir
 
+## Otimização v10.2
+
+Update de `status.md` (`paused: true` + timestamp) delega pra `sub-skills/_lib/update_status.py`. Fallback LLM/Edit mantido. Ver "Delegação pra `_lib/`" no SKILL.md raiz.
+
 ## Instruções
 
 Quando esta skill for invocada, execute os passos **na ordem**:

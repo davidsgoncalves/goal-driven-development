@@ -14,6 +14,15 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 - `--skip-code-like-me` — Desativa a aplicação da sub-skill `code-like-me`. Nesse modo livre, a IA segue o plano e as convenções do projeto, mas tem liberdade para escolher a abordagem sem precisar replicar estilo dev-por-dev. **Sem esta flag, `code-like-me` é aplicado automaticamente.**
 - `--skip-patterns-check` — Desativa a verificação contra `GOD/learned-patterns.md` (passo 6.5). Útil quando o usuário quer rodar implement rapidamente sem o ajuste automático de regras. **Sem esta flag, a verificação roda sempre que o arquivo existe e tem pelo menos uma regra.**
 
+## Otimização v10.2
+
+Esta skill delega tarefas determinísticas pra scripts em `sub-skills/_lib/` quando `python3 ≥ 3.8` está disponível:
+- **Freshness check** (passo 3) → `freshness_check.py`
+- **Atualizar `status.md`** em qualquer passo (2.1, transições) → `update_status.py`
+- **Cobertura final** se chamada → `parse_coverage.py` via skill `coverage`
+
+Falha de script cai pro fallback LLM automaticamente (ver "Delegação pra `_lib/`" no SKILL.md raiz).
+
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
@@ -40,7 +49,11 @@ A spec é o **contrato de escopo**; o plano é o **mapa técnico**. Ambos são c
    - Se o arquivo não existe: avisar e pedir confirmação do path atual ou re-rodar `spec`.
    - Extrair REQs, ACs (com IDs estáveis), cenários e NFRs — vão ser referenciados durante a implementação.
    - Extrair `spec_version` do frontmatter da spec.
-3. **Freshness check (a partir da v7, estendido na v9):**
+3. **Freshness check (v7+, estendido na v9, otimizado v10.2):**
+
+   **Caminho preferido (v10.2):** delegar pra `sub-skills/_lib/freshness_check.py --task {cod}`. JSON traz `drift`, `delta`, `changelog_entries`. Pula leitura manual de status.md + spec.md + changelog.md.
+
+   **Fallback (LLM):**
    - Se `spec_version_consumed` é `null` → primeira execução do `implement`, prosseguir.
    - Se `spec_version_consumed` < `spec_version` da spec atual → **a spec mudou desde o último `plan` ou `implement`**. Aplicar **freshness check estendido (v9)**:
 
@@ -245,93 +258,41 @@ Se durante a execução você identificar:
 2. Se o usuário confirmar ou estiver ausente, delegar à skill `pause` passando o motivo da barreira como observação.
 3. A skill `pause` escreve o bloco `⏸ PAUSE` no changelog e marca `paused: true`. A implementação pára aqui.
 
-### 5.5. Anotação AC↔teste (a partir da v8)
+### 5.5. Anotação AC↔teste (v8)
 
-Após escrever testes, **anotar quais ACs cada teste cobre** via comentário leve. Isso alimenta a skill `coverage` (v8).
+Após escrever testes, anotar ACs cobertos via comentário leve. Alimenta a skill `coverage`.
 
-Pra cada arquivo de teste criado ou modificado nesta task:
+**Sintaxe:** comentário `// covers: AC-X[, AC-Y]` (ou `# covers:` em Ruby/Python) acima do bloco de teste. Múltiplos ACs separados por vírgula.
 
-1. Identificar quais ACs da spec cada `describe`/`it`/`test` cobre. Cruzar com a spec lida no passo 2.
-2. Adicionar comentário **acima** do bloco de teste no formato:
+**Regras:**
+- Cruzar testes da task com ACs lidos no passo 2.
+- Teste sem AC correspondente: não anotar (ausência = "não rastreado pra spec"). Não inventar ACs.
+- Se sente que falta AC, sinal de spec incompleta → anotar em changelog e sugerir `update-spec`.
 
-   ```ts
-   // covers: AC-001.1, AC-001.2
-   it('rejects empty phone', () => { ... });
-   ```
+**ACs sem teste automatizado** (FE sem E2E, validações visuais, auditoria pós-deploy): editar `GOD/tasks/{cod}/coverage.md`, seção `## Validações manuais`:
 
-   Ou, pra Ruby:
-   ```ruby
-   # covers: AC-001.1
-   it 'rejects empty phone' do ... end
-   ```
+```markdown
+- AC-002.1: validação manual em staging por PM
+- AC-002.2: visual em staging por UX
+```
 
-   Ou Python:
-   ```python
-   # covers: AC-001.1
-   def test_rejects_empty_phone(): ...
-   ```
-
-3. Se um teste cobre **múltiplos ACs**, listar separados por vírgula: `// covers: AC-001.1, AC-001.2`.
-4. Se um teste **não corresponde diretamente a nenhum AC** (ex: teste de helper interno), **não anotar nada** — ausência de comentário significa "não rastreado pra spec".
-5. **Não inventar ACs.** Se você sente que falta um AC pra cobrir o teste que está escrevendo, é sinal de que a spec está incompleta — anote no changelog e sugira `update-spec` (v9, futuro) ao usuário antes de prosseguir.
-
-**Pra ACs sem teste automatizado** (típico de FE sem cultura E2E, validações visuais, auditoria pós-deploy):
-
-1. Editar (ou criar) `GOD/tasks/{cod}/coverage.md`.
-2. Na seção `## Validações manuais`, adicionar entrada:
-
-   ```markdown
-   - AC-002.1: validação manual em staging por PM (data: pendente)
-   - AC-002.2: visual em staging por UX
-   ```
-
-3. Ser **honesto** — se vai ser validado manualmente, registra explícito. Não fingir que tá testado.
-
-Após anotar, a próxima execução de `coverage`, `pack-up` ou `review --execution` vai reconhecer essas amarras.
+Honestidade — registrar explícito se é manual; não fingir teste.
 
 ### 5.6. Anotação BR↔código (v10, se `applicable_rules` populado)
 
 Se a spec tem `applicable_rules` no frontmatter (v10) **e** `domains_path` está configurado em `GOD/config.md`:
 
-1. Carregar BRs aplicáveis (lista de IDs do frontmatter).
-2. Pra cada BR, ler o conteúdo da regra no arquivo `<domains_path>/<dominio>.md` (extrair pelo `## BR-<DOMINIO_UPPER>-NNN`).
-3. Identificar **onde no código a invariante é mantida (enforced)** — não onde o conceito apenas trafega:
+1. Carregar BRs aplicáveis do frontmatter da spec; ler cada uma em `<domains_path>/<dominio>.md`.
+2. Identificar **onde a invariante é mantida (enforced)** — não onde o conceito só trafega:
+   - ❌ leitura simples: `const owner = vakinha.owner_id;`
+   - ✅ enforcement: `if (vakinha.owners.length > 1) throw new Error(...)`
+3. Anotar comentário **acima da linha de enforcement**: `// rule: BR-<DOMINIO>-<N> — <descrição curta>`. Sintaxe: `// rule:` em TS/JS/Go/Java/C#; `# rule:` em Ruby/Python.
+4. **Heurística "enforced":** `if ... throw`, filter/where aplicando regra, validação explícita, transação/lock que mantém invariante.
+5. **Anti-poluição:** ~1 anotação por arquivo de domínio. Zero em controllers/views/mappers. >5 anotações = sugerir centralização.
+6. **BR sem ponto de enforcement nesta task** (ex: task só lê meta mas BR-007 trata de update): anotar em `coverage.md` na seção `## BRs aplicáveis sem anotação`. Não anotar no código.
+7. **Não inventar BR** — se sente que falta uma, anotar "BR candidata: <desc>" no changelog. Criação de BR é manual em `<domains_path>/<dominio>.md` (skill `rules` virá na v10.5).
 
-   ```ts
-   // ❌ Não anotar — apenas lê
-   const owner = vakinha.owner_id;
-
-   // ✅ Anotar — aqui é onde a invariante é mantida
-   // rule: BR-PAYMENTS-001 — dono único
-   if (vakinha.owners.length > 1) throw new Error('multiple owners');
-   ```
-
-4. Sugerir comentário **acima da linha de enforcement** no formato:
-
-   ```ts
-   // rule: BR-<DOMINIO>-<N> — <descrição curta>
-   ```
-
-   Mesma sintaxe pra Ruby (`# rule:`), Python (`# rule:`), Go/Java/C# (`// rule:`).
-
-5. **Heurística de onde é "enforced":** condição que pode falhar (`if ... throw`), filter/where que aplica a regra (`donors.filter(d => !d.anonymous)`), validação explícita, transação/lock que mantém invariante.
-
-6. **Diretrizes anti-poluição:**
-   - Anotar **só onde a regra é mantida**, não em cada toque do conceito.
-   - Densidade esperada: ~1 anotação por arquivo de domínio (model, service core), zero em controllers/views/mappers.
-   - Se uma BR aparece anotada >5 vezes, sugerir centralização ("considere extrair pra um helper").
-
-7. **BR sem ponto claro de enforcement nesta task:** se você não consegue identificar o lugar onde a invariante é mantida (ex: BR-PAYMENTS-007 "meta monotônica" mas a task atual só lê meta), **não anotar nada** e adicionar nota em `coverage.md`:
-
-   ```markdown
-   ## BRs aplicáveis sem anotação
-
-   - BR-PAYMENTS-007: task atual não enforça (apenas lê meta). Anotação ficará em task futura que mexer em `update_meta`.
-   ```
-
-8. **Não inventar BR.** Se você sente que falta uma BR pra explicar uma decisão de código, **não crie a BR aqui** — a criação de BR é responsabilidade do usuário (skill `rules` virá na v10.5; por enquanto, edição manual de `<domains_path>/<dominio>.md`). Anote no changelog "BR candidata: <descrição>" e siga.
-
-Após anotar, `pack-up` vai parsear os comentários `// rule:` no diff e gerar tabela "BRs aplicáveis × anotadas" no PR.
+`pack-up` parseia `// rule:` e gera tabela "BRs aplicáveis × anotadas" no PR.
 
 ### 6. Verificação pós-implementação
 
@@ -409,5 +370,5 @@ Apresentar ao usuário:
 
 ## Guard-rails
 
-- **Esta skill é a dona da criação da branch no git.** O `init` não toca em git; o `plan` apenas resolve nome + base; o `implement` cria/ativa fisicamente.
-- **Esta skill não escreve em `GOD/knowledge.md` nem em `GOD/learned-patterns.md`.** Apenas a skill `learn` pode fazê-lo. Esta skill **lê** `learned-patterns.md` no passo 6.5 e pode **criar o arquivo vazio com template** caso não exista (criação defensiva para instalações pré-v5 que não rodaram o upgrade).
+- Dona da criação da branch no git (init não toca, plan só resolve nome+base).
+- Lê `learned-patterns.md` (passo 6.5); pode criar arquivo vazio com template se ausente. Não escreve conteúdo (só `learn` faz).

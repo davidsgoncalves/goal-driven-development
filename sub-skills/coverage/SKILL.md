@@ -20,7 +20,63 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 - `--task <cod>` — código da task (se não passar, pergunta ou usa contexto da conversa)
 - `--format <fmt>` — formato de saída: `markdown` (default, pronto pra PR), `terminal` (legível no shell), `json` (cache estruturado, lido pelo `review --execution`)
 
-## Instruções
+## Context blob (v10.4)
+
+Esta skill aceita context blob inline da skill chamadora (pack-up, review --execution). Quando recebido, **não re-lê** os arquivos correspondentes:
+
+- Se context contém `status` → usar direto (não ler `status.md`).
+- Se context contém `spec` → usar direto. Se tem só `spec_path` → ler do disco.
+- Se context contém `coverage` → usar direto. Se ausente, ler `GOD/tasks/{cod}/coverage.md` (pode não existir — OK).
+
+Quando invocada manualmente sem context (ex: dev rodando `coverage PROJ-123` direto), comportamento original — lê tudo do disco. Retrocompat preservada.
+
+## Caminho preferido (v10.2): delegar pro script Python
+
+A partir da v10.2, esta skill **delega o trabalho de parsing pro script `sub-skills/_lib/parse_coverage.py`** (Python 3.8+ stdlib, sem deps externas). Economiza milhares de tokens vs parsing manual via LLM.
+
+### Detecção e fallback
+
+1. **Checar python3 disponível:**
+   ```bash
+   command -v python3 >/dev/null 2>&1 && python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)'
+   ```
+   Se sucede: usar caminho do script (passos abaixo). Se falha: cair pro **fallback LLM** (passos 1-7 da seção "Caminho fallback" mais abaixo).
+
+2. **Resolver paths do `GOD/config.md`:**
+   - `specs_path` (default `docs/specs`)
+   - `god_root` = diretório onde `GOD/` mora
+
+3. **Invocar o script** via Bash:
+   ```bash
+   python3 sub-skills/_lib/parse_coverage.py \
+     --task "$cod" \
+     --specs-path "$specs_path" \
+     --god-root "$god_root" \
+     --source-root "$source_root" \
+     --format "$format"
+   ```
+   - `$source_root` = diretório a varrer (single-project: pwd; multi-project: cada projeto, varrendo um por vez e mesclando JSONs)
+   - `$format` = `json` (default), `markdown`, ou `terminal`
+
+4. **Em modo `--execution` ou `--task` chamado por `pack-up`:** invocar com `--diff-against <branch_base>` pra limitar varredura aos arquivos do diff (ainda mais barato).
+
+5. **Capturar saída.** Em `json`, parsear pra struct mental e formatar conforme requisitado pela skill chamadora. Em `markdown`/`terminal`, repassar direto.
+
+6. **Se o script reportar `warning: Spec não encontrada`** no JSON: encerrar com mensagem "Task sem spec — coverage não aplicável." (mesmo comportamento do fallback).
+
+### Quando NÃO usar o script (caminho fallback)
+
+- python3 não instalado, ou versão < 3.8
+- Script `_lib/parse_coverage.py` ausente (instalação corrompida — sugerir `doctor` pra diagnosticar)
+- Caso muito específico onde julgamento humano é necessário (raro — script cobre 99% dos casos)
+
+Nesses casos, seguir o **caminho fallback** abaixo. Avisar o usuário 1x: "python3 ausente; coverage rodando via LLM (mais lento e caro). Considere `brew install python3` (macOS) ou `apt install python3` (Linux/WSL)."
+
+---
+
+## Caminho fallback (LLM faz o parsing)
+
+Mantido pra retrocompat e ambientes sem Python. Os passos abaixo eram o caminho default antes da v10.2.
 
 ### 0. Identificar a task
 

@@ -1,0 +1,32 @@
+# Patterns — Convenções do projeto
+
+> Este arquivo define **apenas os padrões** do projeto: branches, commits, PRs e filtros auxiliares. Lido pelas skills `plan` (branch inicial + padrão), `pack-up` (commit + PR) e `init-tree` (status Jira a ignorar).
+> Ações executáveis (criar PR em draft, rodar testes, notificar canais, atualizar tickets) ficam no `hooks.md`.
+
+## Branch inicial
+Descreva aqui o branch inicial (ex: `main`, `master`, `develop`).
+Se o repositório contém múltiplos projetos com branches diferentes, liste cada um.
+
+Exemplo:
+- projeto-web — `develop`
+- projeto-api — `main`
+
+## Padrão de nome de branch
+Descreva o padrão esperado para nomes de branches de task.
+Ex: `task/<cod-da-task>/<descrição-em-ingles-kebab-case>`
+
+## Padrão de mensagem de commit
+Descreva o formato esperado do commit (header, body, footer, idioma, tipos permitidos).
+
+## Padrão de mensagem de PR
+Descreva o formato do título e corpo do PR, idioma e seções obrigatórias.
+
+## Status Jira a ignorar em batch
+Lista de status do Jira que `init-tree` deve pular ao processar folhas (subtasks) em lote. Se a seção estiver ausente ou vazia, o default é: `Done`, `Cancelled`, `Closed`, `Resolved`, `Won't Do`.
+
+Exemplo (um por linha, nome exato como aparece no Jira):
+- Done
+- Cancelled
+- Closed
+- Resolved
+- Won't Do

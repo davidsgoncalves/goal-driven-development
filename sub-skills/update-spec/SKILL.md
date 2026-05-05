@@ -17,6 +17,12 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 | Spec já foi consumida pelo `init`, task está em `specified`, `planned`, `implementing` ou similar | **`update-spec`** (esta skill) |
 | Task já está em `packed-up` (PR aberto) | Avalie se vale; geralmente é melhor abrir nova task |
 
+## Otimização v10.2
+
+- Update de frontmatter da spec (bumpa `spec_version`, atualiza `updated_at`, mexe `applicable_rules`) delega pra `sub-skills/_lib/update_status.py` (mesmo script, aceita qualquer arquivo com YAML frontmatter via `--god-root`).
+- Update de `status.md` (passo 9 — `updated_by: update-spec`) idem.
+- Fallback LLM/Edit mantido.
+
 ## Instruções
 
 Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:

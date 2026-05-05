@@ -222,6 +222,19 @@ applicable_rules), `implement` (sugere `// rule: BR-X`) e `pack-up` (tabela no P
 > Cenários:
 > - Default no repo de specs: `<specs_path>/domains/`
 > - No GOD: `GOD/domains/` (raro — domains são canônicos do produto)
+
+## peer_review_default
+
+(v10.3) Modo de execução do `review --spec/--plan/--execution`.
+
+Valores aceitos:
+- `subagent` (**default**) — review roda em subagent isolado com contexto fresco. Fresh eyes anti-viés. Custa ~1.5x-2x tokens vs inline.
+- `inline` — review roda na própria skill chamadora. **Perde fresh eyes anti-viés**, mas economiza tokens. Use em projeto pequeno/solo onde o tradeoff compensa.
+- `skip` — não roda review automaticamente. Pra ambientes restritos ou pipelines onde peer-review é etapa separada.
+
+subagent
+
+> Override pontual via flag CLI: `review --execution --inline` força inline nesta invocação sem mudar config.
 ```
 
 Substituir `{specs_path}` pelo valor decidido. As seções `publish_spec_default_target`, `principles_path`, `architecture_path` e `domains_path` ficam vazias por padrão (retrocompat — quem não ativar não enxerga diferença). Se o usuário inicializou como repo git separado nesse passo, anotar isso no relatório final.
@@ -346,170 +359,55 @@ Conteúdo exato:
 v10
 ```
 
-### 3. Preencher template do `knowledge.md`
+### 3. Copiar templates pra `GOD/` (lazy load v10.2)
 
-O arquivo `GOD/knowledge.md` deve ser criado com o seguinte template:
+Os templates dos arquivos abaixo vivem em `sub-skills/install/templates/*.tmpl` e são copiados pra `GOD/` durante a instalação. Não estão mais inline na skill — economia de tokens cada vez que `install` é carregada.
 
-```markdown
-# Knowledge — Registro de Tasks
+Pra cada arquivo, copiar o template correspondente:
 
-> Registro de tasks finalizadas com referências de commit e aprendizados. Usado pelo `init` para encontrar tasks semelhantes e pelo `plan` para aproveitar decisões anteriores. **Escrito apenas pela skill `learn`** — nenhuma outra skill modifica este arquivo.
+| Destino | Template |
+|---------|----------|
+| `GOD/knowledge.md` | `sub-skills/install/templates/knowledge.md.tmpl` |
+| `GOD/patterns.md` | `sub-skills/install/templates/patterns.md.tmpl` |
+| `GOD/learned-patterns.md` | `sub-skills/install/templates/learned-patterns.md.tmpl` |
+| `GOD/hooks.md` | `sub-skills/install/templates/hooks.md.tmpl` |
+| `GOD/principles.md` *(opcional, v10)* | `sub-skills/install/templates/principles.md.tmpl` |
+| `GOD/architecture.md` *(opcional, v10)* | `sub-skills/install/templates/architecture.md.tmpl` |
 
-## Tasks finalizadas
+Operação:
+- `cp <template> <destino>` — não substitua se o destino já existe.
+- Os arquivos opcionais `principles.md`/`architecture.md` só são copiados se o usuário ativou no passo 1.6.
 
-<!-- Formato:
-### {cod-da-task} — {breve descrição}
-- **commits:** {hash1}, {hash2}, ...
-- **arquivos principais:** {lista dos arquivos mais relevantes}
-- **aprendizados:** {o que foi aprendido, decisões tomadas, armadilhas evitadas}
--->
-```
+**Exemplos comuns pra `after spec`** (preenchimento posterior em `hooks.md`):
+- Postar comentário no Jira com link da spec + contagem de REQs/ACs.
+- Postar mensagem em Slack `#produto` com resumo da spec.
+- Linkar URL da spec no card Linear/Trello.
 
-### 4. Preencher template do `patterns.md`
+Após criar, oriente o usuário a preencher `patterns.md` com as convenções do projeto e, opcionalmente, os hooks em `hooks.md`.
 
-O arquivo `GOD/patterns.md` deve ser criado com o seguinte template para o usuário preencher:
-
-```markdown
-# Patterns — Convenções do projeto
-
-> Este arquivo define **apenas os padrões** do projeto: branches, commits, PRs e filtros auxiliares. Lido pelas skills `plan` (branch inicial + padrão), `pack-up` (commit + PR) e `init-tree` (status Jira a ignorar).
-> Ações executáveis (criar PR em draft, rodar testes, notificar canais, atualizar tickets) ficam no `hooks.md`.
-
-## Branch inicial
-Descreva aqui o branch inicial (ex: `main`, `master`, `develop`).
-Se o repositório contém múltiplos projetos com branches diferentes, liste cada um.
-
-Exemplo:
-- projeto-web — `develop`
-- projeto-api — `main`
-
-## Padrão de nome de branch
-Descreva o padrão esperado para nomes de branches de task.
-Ex: `task/<cod-da-task>/<descrição-em-ingles-kebab-case>`
-
-## Padrão de mensagem de commit
-Descreva o formato esperado do commit (header, body, footer, idioma, tipos permitidos).
-
-## Padrão de mensagem de PR
-Descreva o formato do título e corpo do PR, idioma e seções obrigatórias.
-
-## Status Jira a ignorar em batch
-Lista de status do Jira que `init-tree` deve pular ao processar folhas (subtasks) em lote. Se a seção estiver ausente ou vazia, o default é: `Done`, `Cancelled`, `Closed`, `Resolved`, `Won't Do`.
-
-Exemplo (um por linha, nome exato como aparece no Jira):
-- Done
-- Cancelled
-- Closed
-- Resolved
-- Won't Do
-```
-
-### 4.5. Preencher template do `learned-patterns.md`
-
-O arquivo `GOD/learned-patterns.md` deve ser criado com o seguinte template:
-
-```markdown
-# Learned Patterns — Regras aprendidas nas tasks
-
-> Regras de estilo, convenções e armadilhas registradas após a revisão de PR de tasks anteriores. Lido pelo `implement` logo após a escrita de código (passo de verificação contra padrões) e escrito pelo `learn` após a revisão do PR.
->
-> **Escrito apenas pela skill `learn`** — nenhuma outra skill modifica o conteúdo.
->
-> **Escopos** (cada regra tem um):
-> - `geral` — aplica-se a todos os projetos.
-> - `linguagem: <lang>` — aplica-se a todos os projetos naquela linguagem.
-> - `projeto: <nome>` — aplica-se somente àquele projeto.
->
-> **Convenção:** adicionar novas regras ao final da lista, numeradas. Não remover, apenas marcar como revogada se necessário (`~~riscado~~` + motivo).
-
----
-
-<!-- Formato de cada regra:
-
-## N. Título curto da regra
-
-**Escopo:** <geral | linguagem: X | projeto: Y>
-
-Descrição da regra.
-
-**Por quê:** motivo — contexto que permite julgar casos de borda.
-
-**Como aplicar:** quando/onde a regra incide. Pode incluir blocos "Bom" e "Ruim" com exemplos curtos ilustrando a regra (não são exemplos específicos de uma task — são ilustrações da regra).
--->
-```
-
-### 5. Preencher template do `hooks.md`
-
-O arquivo `GOD/hooks.md` deve ser criado com o seguinte template:
-
-```markdown
-# Hooks — Pontos de extensão por step
-
-> Cada seção abaixo é um hook opcional. Se você quiser que algo seja executado antes ou depois de um step do fluxo, escreva aqui em linguagem natural — a skill correspondente vai ler e executar.
-> Se não quer nada nesse hook, deixe o valor `skip-hook`.
->
-> Apenas os steps do fluxo principal têm hooks: `init`, `spec`, `plan`, `implement`, `pack-up`.
-> Ferramentas auxiliares (`learn`, `update-plan`, `review`, `status`, `publish-spec`) não têm hooks.
-
-# before init
-skip-hook
-
-# after init
-skip-hook
-
-# before spec
-skip-hook
-
-# after spec
-skip-hook
-
-# before plan
-skip-hook
-
-# after plan
-skip-hook
-
-# before implement
-skip-hook
-
-# after implement
-skip-hook
-
-# before pack-up
-skip-hook
-
-# after pack-up
-skip-hook
-```
-
-**Exemplos comuns de uso pro `after spec`** (preencha quando quiser ativar):
-
-- Postar comentário no ticket Jira da task com link da spec, contagem de REQs/ACs e aviso "se algum critério não bate, comente aqui antes do dev começar"
-- Postar mensagem em canal Slack `#produto` com resumo da spec
-- Linkar URL da spec no card Linear/Trello correspondente
-
-Após criar, informe ao usuário que ele deve preencher o `patterns.md` com as convenções do projeto e, opcionalmente, preencher os hooks no `hooks.md`.
-
-### 6. Gitignore (opcional)
+### 4. Gitignore (opcional)
 
 Pergunte ao usuário se deseja adicionar a pasta `GOD/` ao `.gitignore` do projeto.
 
 - **Se sim:** adicione `GOD/` ao `.gitignore` existente (ou crie o arquivo se não existir)
 - **Se não:** siga para o próximo passo
 
-### 7. Verificar integrações opcionais
+### 5. Verificar integrações e runtime
 
 Verifique o que está disponível no ambiente do usuário:
 
+- **Python 3.8+** (v10.2 — recomendado) — executar `python3 --version` e validar versão >= 3.8. Habilita scripts otimizados em `sub-skills/_lib/` (parsing de cobertura, BRs, etc.) que evitam que o LLM faça trabalho determinístico — economia significativa de tokens em `coverage`, `pack-up`, `review --execution`. Sem `python3`, esses passos caem pro fallback LLM (mais lento e caro). Cross-platform: macOS (Xcode CLI tools ou Homebrew), Linux/WSL (`apt install python3`).
 - **Figma** (`claude.ai Figma` MCP) — verificar se está disponível e autenticado. Melhora `plan` e `implement` com análise de design.
 - **Jira/Atlassian** (`claude.ai Atlassian` MCP) — verificar se está disponível e autenticado. Permite que `plan` busque dados da task automaticamente.
 - **GitHub CLI (`gh`)** — executar `gh --version` e `gh auth status` para verificar instalação e autenticação. É **altamente recomendado** porque:
   - O `pack-up` usa `gh pr create` para abrir PRs
   - O `clean-up` usa `gh pr view` para verificar status de merge dos PRs
 
-Nenhuma dessas integrações é obrigatória, mas sem `gh` a experiência do `pack-up` e do `clean-up` fica degradada (criação manual de PR, verificação manual de merge).
+Nenhuma dessas integrações é obrigatória, mas sem `gh` a experiência do `pack-up` e do `clean-up` fica degradada (criação manual de PR, verificação manual de merge), e sem `python3` os passos otimizados rodam via LLM (custo elevado de tokens).
 
-### 8. Reportar resultado
+> 💡 Após o install, rode `doctor` (v10.2) pra ver diagnóstico completo do ambiente e instruções de correção pra cada item faltante.
+
+### 6. Reportar resultado
 
 Montar a resposta listando o que está ok e o que está faltando:
 
@@ -527,12 +425,14 @@ Montar a resposta listando o que está ok e o que está faltando:
    • architecture_path: {ativado em <path> / desativado}
    • domains_path: {ativado em <path> / desativado}
 
-🔌 Integrações:
+🔌 Integrações e runtime:
+  [✓/✗] python3 (>= 3.8) — {versão detectada / ausente — fallback LLM ativo}
   [✓/✗] Figma MCP — {status}
   [✓/✗] Jira (Atlassian) MCP — {status}
   [✓/✗] GitHub CLI (gh) — {status}
 
 {Se algum item estiver ✗, sugerir conexão/instalação com link apropriado:}
+  - python3: `brew install python3` (macOS) ou `apt install python3` (Linux/WSL) — habilita scripts otimizados
   - Figma: conectar MCP em Claude
   - Jira: conectar MCP em Claude
   - gh: https://cli.github.com (depois `gh auth login`)

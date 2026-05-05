@@ -9,6 +9,10 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 > Retoma uma task pausada. Carrega o contexto registrado no `changelog.md`, confirma com o usuário que a barreira foi resolvida, registra o evento de retomada, limpa o flag `paused` do status e delega de volta à skill responsável pela fase atual da task.
 
+## Otimização v10.2
+
+Update de `status.md` (remover `paused`) delega pra `sub-skills/_lib/update_status.py --remove paused`. Fallback LLM/Edit mantido.
+
 ## Instruções
 
 Quando esta skill for invocada, execute os passos **na ordem**:
