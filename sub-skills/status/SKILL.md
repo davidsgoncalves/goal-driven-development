@@ -36,7 +36,8 @@ Pastas com `kind: context` **não aparecem** no dashboard — elas são apenas r
 
 | `phase` | Descrição | Próximo passo sugerido |
 |---------|-----------|-------------------------|
-| `initialized` | init concluído | `plan` |
+| `initialized` | init concluído, aguardando spec (ou implement direto se profile=trivial) | `spec` (ou `implement` se trivial) |
+| `specified` | spec escrita, aguardando plan | `plan` |
 | `planned` | plan concluído | `implement` |
 | `implementing` | implement em andamento | continuar `implement` ou `update-plan` |
 | `implemented` | implement concluído | `pack-up` |

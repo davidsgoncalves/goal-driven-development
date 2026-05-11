@@ -30,7 +30,7 @@ Quando o usuário invocar esta skill, execute os seguintes passos **na ordem**:
 
 Antes de qualquer coisa, verificar o estado das pastas no diretório raiz.
 
-- **Se `GOD/` existe e tem `GOD/VERSION` com conteúdo `v10`:** informar que o projeto já está instalado na versão atual e encerrar.
+- **Se `GOD/` existe e tem `GOD/VERSION` com conteúdo `v11`:** informar que o projeto já está instalado na versão atual e encerrar.
 - **Se `GOD/` existe mas `GOD/VERSION` não existe (ou aponta pra versão anterior):** informar que é uma instalação de versão antiga e sugerir rodar a skill `upgrade` em vez de reinstalar. Não sobrescrever arquivos existentes.
 - **Se `GOD/` não existe mas `GDD/` existe:** instalação legada da skill GDD detectada. Informar o usuário e sugerir rodar `upgrade` (ou `migrate`) para migrar automaticamente de GDD para GOD. Não instalar do zero — os dados do usuário (tasks, knowledge, patterns, hooks) serão preservados pela migração. Encerrar sem criar nada.
 - **Se nem `GOD/` nem `GDD/` existem:** prosseguir com a instalação.
@@ -50,7 +50,7 @@ GOD/
 └── tasks/
 ```
 
-- `VERSION` — arquivo com conteúdo `v10` (uma linha, sem espaços)
+- `VERSION` — arquivo com conteúdo `v11` (uma linha, sem espaços)
 - `config.md` — configuração local do GOD nesse projeto (ver passo 1.5 abaixo). Contém `specs_path` (onde a spec da task vai morar)
 - `knowledge.md` — criado com template padrão (ver seção abaixo)
 - `patterns.md` — criado com template padrão (ver seção abaixo)
@@ -356,7 +356,7 @@ domain_version: 1
 Conteúdo exato:
 
 ```
-v10
+v11
 ```
 
 ### 3. Copiar templates pra `GOD/` (lazy load v10.2)
@@ -442,7 +442,7 @@ Montar a resposta listando o que está ok e o que está faltando:
   2. (Opcional) Preencha slots de `GOD/hooks.md` que você quer customizar
   3. (Opcional, v10) Se ativou principles/architecture/domains, preencha os arquivos com o conteúdo do seu projeto
   4. `GOD/learned-patterns.md` começa vazio — a skill `learn` vai preenchê-lo após a revisão de PR
-  5. Rode `spec` para iniciar sua primeira task. Fluxo v9 spec-first: spec → [publish-spec] → init → plan → implement → pack-up. Pra mudança trivial (typo, copy), pule direto pra `init {cod} --type=trivial`.
+  5. Rode `init {cod}` para iniciar sua primeira task. Fluxo v11: init → spec → [publish-spec] → plan → implement → pack-up. Pra mudança trivial (typo, copy), use `init {cod} --profile=trivial` e pule direto pro `implement`.
 ```
 
 ---

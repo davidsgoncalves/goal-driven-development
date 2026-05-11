@@ -40,6 +40,32 @@ Ler `GOD/hooks.md` e localizar a seção `# before implement`.
 - Se o contexto da conversa já contém o código da task, usar esse código
 - Caso contrário, perguntar ao usuário o código da task (ex: `PROJ-123`)
 
+### 1.5. Detectar fluxo trivial (v11)
+
+Ler `GOD/tasks/{cod-da-task}/status.md` e olhar `phase` + `profile`.
+
+**Se `phase: initialized` E `profile: trivial`:** task é trivial — pula spec e plan inteiros. Implement resolve branch sozinho.
+
+1. **Pular passo 2 (ler spec/plano e freshness)** — não há spec nem plan pra trivial.
+2. **Resolver branch + branch_base manualmente:**
+   - Ler `GOD/patterns.md` pra obter convenção de nome (`branch_format`, ex: `task/{cod}/{slug}`).
+   - Pedir ao usuário um slug curto descrevendo a mudança (ex: `fix-button-copy`). Default: usar o próprio código da task como slug.
+   - Resolver `branch_base` lendo `patterns.md` (geralmente `main` ou `develop`).
+   - Atualizar `status.md` via `update_status.py`: `branch=<resolvido>`, `branch_base=<resolvido>`.
+3. **Saltar pra passo 2.05 (preparar git)** — segue o fluxo normal a partir daí.
+4. **Pular passos que dependem de spec/plan:** anotações `// covers: AC-X` (passo 5.5) e `// rule: BR-X` (passo 5.6) **não se aplicam** — task trivial não tem ACs nem BRs aplicáveis registradas.
+
+**Se `phase: initialized` E `profile ∈ {normal, critical}`:** task tem init mas não passou pela spec — orientar o usuário:
+
+> ⚠️ Task `{cod}` ainda está em `phase: initialized` (perfil `{profile}`). Spec ainda não foi escrita.
+>
+> - Pra rodar implement com escopo formal: rode `spec {cod}` antes (vai abrir Q&A focada em escopo, escrever a spec e atualizar status pra `specified`).
+> - Se essa task é trivial e você não quer spec: rode primeiro `init {cod} --profile=trivial` (vai sobrescrever `profile: trivial` no status).
+
+Encerrar.
+
+**Caso contrário (phase ∈ {specified, planned, implementing}):** seguir fluxo normal a partir do passo 2.
+
 ### 2. Ler spec e plano, checar freshness
 
 A spec é o **contrato de escopo**; o plano é o **mapa técnico**. Ambos são consumidos:
@@ -113,7 +139,7 @@ Esta skill é responsável pela criação física da(s) branch(es) no git. O `pl
 1. **Ler `GOD/tasks/{cod-da-task}/status.md`** e identificar o formato do campo `branch`:
    - **String** (ex: `branch: task/PROJ-123/xxx` + `branch_base: main`) → **modo single-project**. Uma branch a criar.
    - **Lista de objetos** (ex: `branch: [{project, name, base}, ...]`) → **modo multi-project workspace**. Uma branch por projeto afetado.
-   - **`null` em qualquer lado:** a task não foi planejada corretamente — orientar o usuário a rodar `plan` primeiro e encerrar.
+   - **`null` em qualquer lado:** se chegou aqui via passo 1.5 (fluxo trivial), branch foi resolvido naquele passo e o status.md foi atualizado — re-ler. Se mesmo assim continua null ou se veio direto pra cá com phase ≥ specified, a task não foi planejada corretamente — orientar o usuário a rodar `plan` primeiro e encerrar.
 
 2. **Single-project** (uma branch):
    - Verificar se a branch da task já existe localmente (`git rev-parse --verify {branch}`):

@@ -250,7 +250,7 @@ O script preserva campos não tocados (branch, branch_base, learned). Não sobre
 - `updated_at`: timestamp ISO 8601 UTC
 - `updated_by`: `pack-up`
 - `prs`: **append** da URL (não sobrescrever array)
-- `spec_version_delivered` (v9): int, omitir em task trivial/pré-v6
+- `spec_version_delivered` (v9+): int, omitir em task trivial (sem spec) ou pré-v6
 - Demais campos: preservar
 
 Exemplo antes:

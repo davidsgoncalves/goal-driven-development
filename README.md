@@ -37,29 +37,29 @@ Meta framework de skills do Claude Code pra desenvolvimento orientado a objetivo
 - MCP Atlassian (Jira) — `spec` busca task automaticamente; `init-tree` percorre árvore Jira.
 - MCP Figma — `spec` analisa design pra cenários e edge cases visuais.
 
-## Ciclo de vida (v9 spec-first)
+## Ciclo de vida (v11 — init estrutural + spec WHAT)
 
 ```
-install → spec → [publish-spec] → init → plan → implement → pack-up
-            ↑                              ↑       ↑           ↑
-         review                         review  review      review
-         (spec)                         (plan) (update)  (execution)
+install → init → spec → [publish-spec] → plan → implement → pack-up
+                  ↑                       ↑       ↑           ↑
+               review                  review  review      review
+               (spec)                  (plan) (update)  (execution)
 ```
 
 | Etapa | O que faz |
 |-------|-----------|
 | **install** | Setup uma vez por projeto. Cria `GOD/` com VERSION, config.md, knowledge.md, patterns.md, learned-patterns.md, hooks.md. |
-| **spec** | **Entry point do fluxo.** Aceita input (Jira/Figma/texto livre), detecta perfil da task (trivial/normal/critical), faz Q&A focada nos gaps detectados, escreve spec canônica em `<specs_path>/tasks/{cod}.md`. |
-| **publish-spec** *(opcional, sugerido em perfil critical)* | Publica spec em Jira/Slack/stdout pra validação externa antes do init. |
-| **init** | Cria estrutura de execução em `GOD/tasks/{cod}/` (status.md + plan.md vazio). Aceita `--type=trivial` que pula spec pra mudanças cosméticas. |
+| **init** | **Entry point estrutural.** Cria `GOD/tasks/{cod}/` com `plan.md` vazio + `status.md` (`phase: initialized`). Não exige spec, não toca git, não busca dados. Aceita `--profile=trivial\|normal\|critical` (default `normal`) só pra carimbar label informativa. |
+| **spec** | Produz o WHAT canônico depois do init. Aceita input (Jira/Figma/texto livre), detecta perfil, faz Q&A focada nos gaps detectados, escreve spec canônica em `<specs_path>/tasks/{cod}.md`. Atualiza status.md pra `phase: specified`. Auto-init silencioso se status.md ausente. |
+| **publish-spec** *(opcional, sugerido em perfil critical)* | Publica spec em Jira/Slack/stdout pra validação externa antes do plan. |
 | **plan** | Lê a spec pronta. Resolve branch + base, detecta single/multi-project, escreve plano técnico (HOW) referenciando ACs. Lê principles/architecture (v10) e gera bloco "Considerações arquiteturais". |
-| **implement** | Cria branch no git, executa o plano. **Freshness check estendido** detecta drift de spec via changelog e oferece reabrir passos. Anota `// covers: AC-X` em testes (v8) e `// rule: BR-X` em código que enforça invariantes (v10). |
+| **implement** | Cria branch no git, executa o plano. **Freshness check estendido** detecta drift de spec via changelog e oferece reabrir passos. **Detecta fluxo trivial** (`phase: initialized + profile: trivial`) e resolve branch sozinho. Anota `// covers: AC-X` em testes (v8) e `// rule: BR-X` em código que enforça invariantes (v10). |
 | **pack-up** | Review final, commit, push, PR via `gh`. Carimba `spec_version_delivered` no PR description + tabela AC × validação + tabela BRs aplicáveis × anotadas. Link do changelog se houve mudança de escopo. |
 
 ### Variantes
 
-- **`init-tree`** — recebe um nó-raiz do Jira (Epic/Story), desce a árvore, cria pastas de contexto pra nós internos e gera **specs rascunho em batch** pra cada folha. Você refina cada uma com `spec {cod}` interativo antes de `init`.
-- **Modo trivial** — `init {cod} --type=trivial` pula spec pra cosmético (typo, copy, dep upgrade). Vai direto pra implement.
+- **`init-tree`** — recebe um nó-raiz do Jira (Epic/Story), desce a árvore, cria pastas de contexto pra nós internos e cria estrutura de execução vazia (`phase: initialized`) pra cada folha. **Não escreve specs em batch** (na v11 — gerar rascunho sem Q&A produzia lixo). Você escreve cada spec individualmente com `spec {cod}` quando estiver pronto.
+- **Modo trivial** — `init {cod} --profile=trivial` carimba label no status.md. Pula spec/plan e vai direto pro `implement` (que detecta o profile e resolve branch sozinho).
 - **Multi-project workspace** — pasta-mãe sem `.git` contendo múltiplos repos. Cada task pode ter branch em N projetos; pack-up abre N PRs.
 
 ## Skills auxiliares
@@ -133,7 +133,7 @@ Todos: Python 3.8+ stdlib only, cross-platform (macOS, Linux, WSL), sem dependê
 
 ## Filosofia de versões
 
-GOD é versionado em fases (v6, v7, v8, v9, v10) que entregam capacidades semânticas, e patches transversais (v8.1, v8.2, v10.1...) que otimizam ou refinam sem mudança funcional. Detalhes em [SDD-ROADMAP.md](SDD-ROADMAP.md).
+GOD é versionado em fases (v6, v7, v8, v9, v10, v11) que entregam capacidades semânticas, e patches transversais (v8.1, v8.2, v10.1...) que otimizam ou refinam sem mudança funcional. Detalhes em [SDD-ROADMAP.md](SDD-ROADMAP.md).
 
 | Versão | O que entregou |
 |--------|----------------|
@@ -142,7 +142,7 @@ GOD é versionado em fases (v6, v7, v8, v9, v10) que entregam capacidades semân
 | v8 | Rastreabilidade AC × validação (`// covers:` + `coverage.md` + tabela no PR). |
 | v8.1 | Peer-review via subagent isolado (anti-viés). |
 | v8.2 | Default target do publish-spec configurável. |
-| v9 | **Spec-first** (inverte ordem `init→spec` para `spec→init`) + spec viva (`update-spec` + changelog). |
+| v9 | **Spec-first** (`spec → init → ...`) + spec viva (`update-spec` + changelog). |
 | v10 | Architecture advisor + Domain rules (principles/architecture/domains opcionais e configuráveis, agnóstico ao projeto). |
 | v10.1 | Spec absorve qualidades da skill global `god-spec` (heurísticas pré-Q&A, self-validação, ASCII). |
 | v10.2 | Scripts Python pra processos robóticos + skill `doctor` + lazy templates + compactação. |
@@ -150,6 +150,7 @@ GOD é versionado em fases (v6, v7, v8, v9, v10) que entregam capacidades semân
 | v10.4 | Context blob (cache de leituras) + quebra de `review` em 3 sub-skills. |
 | v10.5 | Batch consolidado de validação no pack-up (`pack_up_validate.py`). |
 | v10.6 | Debug log opt-in via flag `--debug` (registra ações por invocação em `debug.log`). |
+| v11 | **Init estrutural** (inverte de volta pra `init → spec → ...`). Init vira entry point bookkeeping; spec atualiza status.md (`initialized → specified`); auto-init silencioso preserva hábito v9. Mata `--type=trivial` (vira `--profile=trivial`). Init-tree para de gerar specs em batch e passa a criar estrutura de execução vazia por folha. |
 
 ## Debugando custo de tokens (v10.6)
 
@@ -250,7 +251,7 @@ No projeto do usuário (após `install`):
 ```
 <projeto>/
 ├── GOD/                              # estado das tasks (pode ir no .gitignore)
-│   ├── VERSION                       # ex: v10
+│   ├── VERSION                       # ex: v11
 │   ├── config.md                     # configuração local
 │   ├── knowledge.md, patterns.md, learned-patterns.md, hooks.md
 │   ├── principles.md (opcional v10)

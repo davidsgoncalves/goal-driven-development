@@ -49,8 +49,12 @@ Ler `GOD/hooks.md` e localizar a seção `# before plan`.
 
 A spec é a **fonte de verdade do escopo**. Esta skill nunca altera a spec — apenas a consome.
 
-1. **Ler `GOD/tasks/{cod-da-task}/status.md`** e extrair `spec_path` e `spec_version_consumed`.
-   - Se `spec_path` está ausente ou vazio: a skill `spec` não rodou. Orientar o usuário a rodar `spec` primeiro e encerrar.
+1. **Ler `GOD/tasks/{cod-da-task}/status.md`** e extrair `phase`, `spec_path`, `spec_version_consumed`, `profile`.
+   - Se `phase: initialized` e `spec_path` é null: a skill `spec` ainda não rodou. Orientar:
+     - Se `profile` é `normal` ou `critical`: rode `spec {cod}` antes de `plan`.
+     - Se `profile: trivial`: você não precisa de `plan` — pule direto pro `implement {cod}` (task trivial não exige plano formal).
+     - Encerrar.
+   - Se `spec_path` é null em qualquer outra fase: estado inconsistente — rode `doctor` pra diagnosticar.
 2. **Ler a spec** em `<spec_path>` (resolver relativo ao diretório do GOD se necessário).
    - Se o arquivo não existe no path indicado: pode ter sido movido manualmente. Pedir ao usuário pra confirmar o caminho atual ou re-rodar `spec`.
    - Extrair `spec_version` do frontmatter da spec (versão atual).

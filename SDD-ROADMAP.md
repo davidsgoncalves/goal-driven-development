@@ -2,7 +2,7 @@
 
 > Plano técnico de evolução do framework GOD, do estado atual até virar **SDD de verdade**, dentro do escopo da realidade onde ele é usado: time pequeno, releases diários, escopo que muda, arquitetura assistida (não imposta), spec é lei quando chega ao dev.
 
-> **Status:** Fases 1 (v6), 2 (v7), 3 (v8), 4 (v9) e 5 (v10) entregues. Patches transversais: v8.1 (peer-review via subagent), v8.2 (default target do publish-spec configurável), v10.1 (spec absorve qualidades da god-spec — unificação), v10.2 (scripts Python pra processos robóticos + skill `doctor` + lazy templates + compactação), v10.3 (peer-review opt-out via config), v10.4 (context blob + quebrar review em 3), v10.5 (batch consolidado no pack-up + README reescrito), v10.6 (debug log opt-in via `--debug`).
+> **Status:** Fases 1 (v6), 2 (v7), 3 (v8), 4 (v9), 5 (v10) e 6 (v11) entregues. Patches transversais: v8.1 (peer-review via subagent), v8.2 (default target do publish-spec configurável), v10.1 (spec absorve qualidades da god-spec — unificação), v10.2 (scripts Python pra processos robóticos + skill `doctor` + lazy templates + compactação), v10.3 (peer-review opt-out via config), v10.4 (context blob + quebrar review em 3), v10.5 (batch consolidado no pack-up + README reescrito), v10.6 (debug log opt-in via `--debug`).
 >
 > **Resumo das fases:**
 > - v6: spec extraída em path configurável.
@@ -12,8 +12,9 @@
 > - **v8.2 (patch retrocompatível):** `publish-spec` aceita default em `GOD/config.md`.
 > - v9: spec-first (inverte ordem `init→spec` para `spec→init`) + spec viva (`update-spec` + changelog).
 > - v10: Architecture advisor (principles/architecture configuráveis) + Domain rules (`<dominio>.md` com BRs em IDs derivados do frontmatter, agnóstico ao projeto). `spec` sugere `applicable_rules`, `implement` sugere `// rule: BR-X`, `pack-up` injeta tabela de BRs no PR.
+> - v11: Init estrutural — inverte de volta pra `init → spec → ...` espelhando init-tree (que sempre cria pasta primeiro). Init vira entry point bookkeeping (não exige spec, não toca git). Spec atualiza status.md (`initialized → specified`); auto-init silencioso preserva hábito v9 sem fricção. Mata `--type=trivial` (vira `--profile=trivial`). Init-tree para de gerar specs em batch e cria estrutura de execução vazia por folha.
 >
-> Próxima: v10.5 — skills `rules` (criação interativa de BR) e `audit-rules` (varredura de BRs órfãs / código apontando pra BR removida). Ou Fase 6 (v11) — Multi-autor (depende de mandato organizacional).
+> Próxima: skills `rules` (criação interativa de BR) e `audit-rules` (varredura de BRs órfãs / código apontando pra BR removida). Ou Fase 7 (v12) — Multi-autor (depende de mandato organizacional).
 
 ## Como ler este documento
 
@@ -39,7 +40,8 @@ Não execute fases fora de ordem. Cada uma assume os artefatos das anteriores co
 | 3 | v8 | AC rastreável | **entregue** | Nenhuma |
 | 4 | v9 | Spec-first + spec viva | **entregue** | Nenhuma |
 | 5 | v10 | Architecture advisor + Domain rules | **entregue** | Baixa (preencher principles + domains opcionais) |
-| 6 | v11 | Multi-autor | a fazer | Alta (mandato + equipe) |
+| 6 | v11 | Init estrutural (inversão init↔spec, simetria com init-tree) | **entregue** | Nenhuma |
+| 7 | v12 | Multi-autor | a fazer | Alta (mandato + equipe) |
 
 ---
 
@@ -313,7 +315,7 @@ Combinadas, fazem da spec o gate de entrada (precede commit) e de saída (versã
 - **Spec vira gate, não rascunho.** Spec rejeitada não polui repo com branch órfã.
 - **Validação externa fica natural.** PM viajou? Spec espera. Hoje, dev é tentado a "começar codando" e descartar trabalho quando resposta muda escopo.
 - **Spec compartilhável sem branch.** Tech lead revisa em main, sem checkout.
-- **v11 (multi-autor) deixa de precisar gambiarra.** Se PM/UX co-escrevem spec, ela tem que preceder branch — invertido, é natural.
+- **v12 (multi-autor) deixa de precisar gambiarra.** Se PM/UX co-escrevem spec, ela tem que preceder branch — invertido, é natural.
 - **Match com SDD canônico** (Specify Kit, spec-kit). Adaptação peculiar continua, alinhamento conceitual melhora.
 - **"Mudou no meio" vira evento consciente.** Histórico por feature, alavanca de retrospectiva.
 - **3 perfis evitam cerimônia em task trivial.** Typo não passa por publish-spec.
@@ -405,7 +407,47 @@ Os 3 artefatos (`principles.md`, `architecture.md`, `domains/`) são **opcionais
 
 ---
 
-## Fase 6 — Multi-autor (v11)
+## Fase 6 — Init estrutural (v11) — ENTREGUE
+
+### O que entrega
+
+Inverte a ordem `spec → init` (v9) de volta pra `init → spec`, mas com semântica completamente diferente do estado v8 anterior:
+
+- Init vira **entry point estrutural**: cria `GOD/tasks/{cod}/` com `plan.md` vazio + `status.md` (`phase: initialized`). Não exige spec, não toca git, não busca dados externos.
+- Spec roda **depois** e **atualiza o status.md** (transição `initialized → specified`, popula `spec_path` e `spec_version_consumed`). Continua sendo o WHAT canônico.
+- **Auto-init silencioso:** se o usuário invocar `spec {cod}` sem ter rodado init antes (hábito v9), spec roda init programaticamente. Sem fricção, mesmo experiência da v9.
+- **Init-tree v11 não escreve specs em batch.** Cria pastas de contexto + estrutura de execução vazia (`phase: initialized`) por folha. Usuário escreve cada spec individualmente com `spec {cod}` quando estiver pronto. Razão: gerar specs em batch sem Q&A produzia rascunho que ninguém refinava.
+- **Mata `--type=trivial` do init.** Substituído por `--profile=trivial` (label informativa no status.md, sem mudar comportamento da skill). Trivial salta spec/plan e vai direto pro `implement`, que detecta `phase: initialized + profile: trivial` e resolve branch sozinho.
+
+### Por que voltar pra `init → spec` depois da v9?
+
+A v9 invertiu pra `spec → init` argumentando que spec era "o gate de entrada que precede commit/branch". Mas init nunca tocou git — sempre foi só bookkeeping (criar arquivos vazios). O gate real sempre foi o `implement`. Então:
+
+- A inversão da v9 era cerimonial, não funcional.
+- Init-tree (batch) sempre criou pastas primeiro — assimetria com o single-task da v9.
+- Em v9, `status` não mostrava task até o init rodar; abandono no meio do spec deixava a task invisível.
+- Trivial precisava de flag pra contornar "spec antes de init" — escape hatch que polui a interface.
+
+A v11 resolve tudo isso preservando a tese principal da v9 (spec é o WHAT canônico, vive em `<specs_path>/tasks/`, é o contrato com stakeholder externo).
+
+### Pré-requisitos
+
+- **Técnicos:** Fases 1-4 (v6-v9) no mínimo.
+- **Organizacionais:** Nenhum.
+
+### Esforço de build
+
+~1 dia (mudança principalmente em SKILL.md das skills afetadas — init, spec, init-tree, status, resume, doctor, plan, implement, pack-up, update-spec, SKILL raiz, README, ROADMAP, migration v10→v11).
+
+### Riscos mitigados
+
+- **Tasks v9/v10 existentes em phase ≥ specified** — continuam funcionando intactas. State machine v11 = superconjunto v10 (adiciona `initialized` antes de `specified`).
+- **Hábito v9 do usuário** (rodar `spec` direto) — coberto por auto-init silencioso.
+- **Tasks v9 inicializadas com `--type=trivial`** — status.md tem `phase: planned` (atalho legado). Continuam funcionando pelo caminho legado do implement.
+
+---
+
+## Fase 7 — Multi-autor (v12)
 
 ### Quando faz sentido
 **Apenas** se a empresa decidir entrar no jogo. Solo, esta fase é overhead. Faça quando o mandato chegar — não antes.
@@ -454,8 +496,11 @@ Alto. Esta fase **morre** se a empresa não comprar antes.
 ### Rota B — SDD solo + advisor arquitetural
 **v6 + v7 + v8 + v9 + v10.** Adiciona principles e architecture. +2-3 dias.
 
+### Rota B+ — SDD solo + reordenação init/spec
+**v6 + v7 + v8 + v9 + v10 + v11.** Inverte init/spec pra simetria com init-tree e elimina escape hatches. +1 dia.
+
 ### Rota C — SDD integral cross-funcional
-**Tudo até v11.** Só comece v11 com mandato real, não com promessa.
+**Tudo até v12.** Só comece v12 com mandato real, não com promessa.
 
 ### Recomendação prática
 Comece pela **v6** independentemente do que rolar nas conversas organizacionais. É a fase de maior ROI por esforço. Sem ela, nenhuma das outras é possível, e ela vale por si só. Faça **v7** logo em seguida pela alavanca de "publicar spec no Jira" — vira argumento concreto pra qualquer conversa futura.
@@ -503,6 +548,6 @@ Para o GOD virar SDD de verdade no escopo atual, o caminho mínimo é 4 fases in
 3. **v8 — Rastrear ACs** (ID estável, cobertura por teste ou validação manual)
 4. **v9 — Spec-first + versionar spec** (inverte ordem `init→spec` para `spec→init`; mudança de escopo como evento de primeira-classe)
 
-Tudo solo, sem dependência organizacional. Architecture advisor (v10) e multi-autor (v11) são extensões que dependem de decisões da empresa e devem ser implementadas apenas com sinal claro.
+Tudo solo, sem dependência organizacional. Architecture advisor (v10) e multi-autor (v12) são extensões que dependem de decisões da empresa e devem ser implementadas apenas com sinal claro.
 
 A primeira fase concreta a iniciar é a v6. As demais derivam dela.

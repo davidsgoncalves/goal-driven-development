@@ -78,7 +78,8 @@ Com base no campo `phase` restaurado, sugerir ou delegar para a skill apropriada
 
 | `phase` | Ação sugerida |
 |---------|---------------|
-| `initialized` | Delegar para `plan` |
+| `initialized` | Delegar para `spec` (ou `implement` se `profile: trivial`) |
+| `specified` | Delegar para `plan` |
 | `planned` | Delegar para `implement` |
 | `implementing` | Delegar para `implement` (continuar de onde parou, usando o changelog como referência) |
 | `implemented` | Delegar para `pack-up` |

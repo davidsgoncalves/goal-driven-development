@@ -39,7 +39,7 @@ Verificações:
 | `GOD/hooks.md` existe | idem | ⚠️ warning |
 | `GOD/tasks/` existe | idem | ⚠️ warning |
 
-Versão atual do framework: ler do diretório de instalação do GOD (ex: `~/.claude/skills/god/VERSION` ou similar). Se ambíguo, pegar do `SDD-ROADMAP.md` mencionado no description da skill raiz. Em última instância, hard-code a versão atual conhecida (`v10`).
+Versão atual do framework: ler do diretório de instalação do GOD (ex: `~/.claude/skills/god/VERSION` ou similar). Se ambíguo, pegar do `SDD-ROADMAP.md` mencionado no description da skill raiz. Em última instância, hard-code a versão atual conhecida (`v11`).
 
 ### 3. Bloco "Configuração"
 
@@ -158,17 +158,20 @@ Varrer `GOD/tasks/*/` e validar:
 |-------|---------------------|
 | Pasta tem `status.md` (a menos que seja contexto de `init-tree`) | ⚠️ warning — task corrompida |
 | `status.md` é YAML válido com campos obrigatórios (`phase`, `updated_at`) | ⚠️ warning |
-| Se `phase ≠ initialized`, `spec_path` populado ou perfil = trivial | ⚠️ warning |
+| Se `phase ∉ {initialized, packed-up}` e `profile ≠ trivial`, `spec_path` populado | ⚠️ warning |
 | Se `phase ∈ {planned, implementing, ...}`, `branch` populado | ⚠️ warning |
-| Spec referenciada em `spec_path` realmente existe | ⚠️ warning |
+| Spec referenciada em `spec_path` realmente existe (quando `spec_path` ≠ null) | ⚠️ warning |
 
-Reportar contagem por fase: "5 tasks ativas: 1 specified, 2 planned, 1 implementing, 1 packed-up".
+Reportar contagem por fase: "6 tasks ativas: 2 initialized, 1 specified, 2 planned, 1 implementing".
+
+> **Mudança v11:** `phase: initialized` agora é estado normal pós-init (antes do spec). Não gera warning se `spec_path` está null nessa fase — é esperado.
 
 ### 9. Bloco "Specs órfãs vs tasks órfãs"
 
 Cruzar `<specs_path>/tasks/*.md` com `GOD/tasks/*/status.md`:
-- **Spec órfã**: arquivo em `<specs_path>/tasks/{cod}.md` sem `GOD/tasks/{cod}/` correspondente — provavelmente outra máquina trabalhando, ou spec do init-tree não passou por init ainda. ℹ️ informativo.
-- **Task órfã**: pasta em `GOD/tasks/{cod}/` com `phase` não-trivial mas sem spec correspondente em `<specs_path>` — ⚠️ warning, sugere rodar `spec {cod}` ou checar pull do repo de specs.
+- **Spec órfã**: arquivo em `<specs_path>/tasks/{cod}.md` sem `GOD/tasks/{cod}/` correspondente — provavelmente outra máquina trabalhando, ou repo de specs ainda não puxou. ℹ️ informativo.
+- **Task em `initialized` sem spec**: pasta em `GOD/tasks/{cod}/` com `phase: initialized` e `spec_path: null` — ℹ️ informativo (estado normal v11; usuário pode rodar `spec {cod}` quando estiver pronto, ou seguir trivial).
+- **Task órfã**: pasta em `GOD/tasks/{cod}/` com `phase ∉ {initialized, packed-up}` e `profile ≠ trivial`, sem spec em `<specs_path>` — ⚠️ warning, sugere rodar `spec {cod}` ou checar pull do repo de specs.
 
 ### 10. Reportar
 
@@ -181,7 +184,7 @@ Saída ASCII com box-drawing fora de fences. Estrutura:
 
 ┌─ Instalação GOD ────────────────────────────────────────────────────────
 │
-│  ✅ GOD/ existe (versão v10 — atual)
+│  ✅ GOD/ existe (versão v11 — atual)
 │  ✅ config.md, patterns.md, knowledge.md, learned-patterns.md, hooks.md
 │  ✅ GOD/tasks/ (3 tasks)
 │

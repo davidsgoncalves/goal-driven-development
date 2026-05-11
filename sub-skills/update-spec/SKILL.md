@@ -1,21 +1,22 @@
 ---
 name: update-spec
 description: |
-  Aplica mudança de escopo na spec de uma task **depois** que `init` rodou (fase posterior a `specified`). Pergunta motivo, edita a spec, incrementa `spec_version`, registra delta em `<specs_path>/tasks/{cod}-changelog.md`. Diferente de `spec --review-feedback` que só roda antes do init. Use quando o usuário mencionar: "atualizar spec", "spec mudou", "PM mudou de ideia", "mudança de escopo", "update spec", ou quando o escopo de uma task em andamento for alterado.
+  Aplica mudança de escopo na spec de uma task **depois** que `plan` consumiu a spec (fase ≥ `planned`). Pergunta motivo, edita a spec, incrementa `spec_version`, registra delta em `<specs_path>/tasks/{cod}-changelog.md`. Diferente de `spec --review-feedback` que roda enquanto a task está em `initialized`/`specified`. Use quando o usuário mencionar: "atualizar spec", "spec mudou", "PM mudou de ideia", "mudança de escopo", "update spec", ou quando o escopo de uma task em andamento for alterado.
 tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 ---
 
-# Update Spec — Sub-skill de Atualização de Spec (pós-init)
+# Update Spec — Sub-skill de Atualização de Spec (pós-plan)
 
-> Aplica mudança de escopo na spec de uma task que **já passou por `init`**. Pergunta motivo, edita a spec, incrementa `spec_version`, registra delta em `<specs_path>/tasks/{cod}-changelog.md` e dispara propagação leve (alerta `implement` no próximo run via freshness check). É o mecanismo da v9 pra "spec viva" — mudança de escopo deixa de ser invisível.
+> Aplica mudança de escopo na spec de uma task que **já passou por `plan`** (status.md tem `phase ∈ {planned, implementing, implemented, packed-up}`). Pergunta motivo, edita a spec, incrementa `spec_version`, registra delta em `<specs_path>/tasks/{cod}-changelog.md` e dispara propagação leve (alerta `implement` no próximo run via freshness check). É o mecanismo da "spec viva" — mudança de escopo pós-plan deixa de ser invisível.
 
 ## Quando usar (vs `spec --review-feedback`)
 
 | Situação | Skill correta |
 |----------|---------------|
-| Spec ainda não foi consumida pelo `init` (não há `GOD/tasks/{cod}/status.md`) | `spec --review-feedback {cod}` |
-| Spec já foi consumida pelo `init`, task está em `specified`, `planned`, `implementing` ou similar | **`update-spec`** (esta skill) |
-| Task já está em `packed-up` (PR aberto) | Avalie se vale; geralmente é melhor abrir nova task |
+| Task em `phase: initialized` (spec ainda não escrita) | `spec {cod}` direto (escreve a spec normalmente) |
+| Task em `phase: specified` (spec escrita, plan ainda não rodou) | `spec --review-feedback {cod}` (incrementa spec_version, sem mexer no plan) |
+| Task em `phase: planned`, `implementing` ou superior | **`update-spec`** (esta skill — propaga drift via changelog) |
+| Task em `phase: packed-up` (PR aberto) | Avalie se vale; geralmente é melhor abrir nova task |
 
 ## Otimização v10.2
 
@@ -59,11 +60,11 @@ Antes de qualquer leitura/escrita de spec, garantir paridade com remoto pra evit
 Verificar:
 - `GOD/tasks/{cod}/status.md` existe (init rodou). Se não existe, abortar e orientar:
 
-  > ⚠️ Não encontrei `GOD/tasks/{cod}/status.md`. Esta task ainda não passou por `init`.
-  >
-  > Use `spec --review-feedback {cod}` em vez de `update-spec` — é o fluxo certo pra mudança de escopo antes do init.
+  > ⚠️ Não encontrei `GOD/tasks/{cod}/status.md`. Esta task ainda não foi inicializada — rode `init {cod}` primeiro.
 
-- Ler `status.md` e checar `phase`. Se `packed-up`, alertar:
+- Ler `status.md` e checar `phase`:
+  - Se `phase ∈ {initialized, specified}`: use `spec --review-feedback {cod}` (ou `spec {cod}` se a spec ainda nem foi escrita) — `update-spec` é desenhada pra mudança pós-plan, onde já há plano técnico que precisa ser reconsiderado.
+  - Se `packed-up`, alertar:
 
   > ⚠️ Task `{cod}` está em `packed-up` (PR já aberto/mergiado). Mudança de escopo aqui geralmente vira nova task — `update-spec` ainda funciona, mas considere se faz mais sentido criar `{cod}-followup`. Quer (a) seguir mesmo assim, (b) abortar?
 
