@@ -32,6 +32,8 @@ Ao iniciar esta skill, **antes de qualquer outra ação**, exiba exatamente este
 ## Flags
 
 - `--context-only` — apenas cria pastas de contexto pra nós internos; **não** cria estrutura de execução pras folhas. Útil se você só quer mapear a árvore documentalmente sem inicializar tasks.
+- `--stack` *(v12)* — após criar estruturas, lê `issuelinks` (`is blocked by`) das folhas, monta DAG, topo-sorta e grava `stack_parent` + `stack_order` no `status.md` de cada folha. Skills downstream (`plan`, `implement`, `ready`) usam esses campos pra: (a) basear branch da folha N na branch da N-1 em vez de `main`; (b) fazer cascata de rebase quando a parent muda; (c) recomendar `ready` em ordem conforme cada PR mergeia. Se nenhuma folha tem `is blocked by` apontando pra outra folha no escopo, `--stack` vira no-op e emite aviso ("nenhuma dependência detectada — árvore é independente").
+- `--auto` *(v12)* — encadeia o ciclo completo em todas as folhas após o init-tree: invoca a skill `worktree` (com symlink de `node_modules`), depois `spec-tree` (Q&A unificada em batch pra todas as folhas), depois loop `plan → implement → pack-up` por folha. Em falha irresolúvel para e chama humano. Composável com `--stack` — quando ambos estão presentes, o loop respeita a ordem do stack e a cascata de rebase. Ver sub-skill `spec-tree` e seção "Modo auto" abaixo.
 
 ## Instruções
 
@@ -196,6 +198,36 @@ Caso contrário, **delegar à skill `init` programaticamente** passando o códig
 
 **Falha parcial:** se a criação de algum nó falhar, registrar erro, continuar. Persistir o que foi criado.
 
+### 6.5. Aplicar stack (se `--stack` presente)
+
+Pra cada folha criada/preservada com `will_create: true` e estrutura de execução já gerada:
+
+1. **Coletar `is blocked by`** — pra cada folha, ler `issuelinks` do payload do Jira (já obtido no passo 2). Filtrar por tipo `Blocks` na direção "is blocked by" (a task em questão é bloqueada **por** outra). Pode ser inferido pelo MCP via `inwardIssue.key`. Só considerar links cujo target está no escopo (também é uma folha desta árvore) — fora-do-escopo gera warning mas não bloqueia.
+
+2. **Montar payload pro helper:**
+   ```json
+   {"tasks": {"{cod}": {"blocked_by": ["{cod}", ...]}, ...}}
+   ```
+
+3. **Rodar topo-sort** via `python3 sub-skills/_lib/parse_jira_deps.py < payload.json`:
+   - Exit 0 → ler `order`, `stack`, `warnings` do stdout JSON.
+   - Exit 2 (ciclo) → **abortar `--stack`**, registrar erro com lista de nós em ciclo, encerrar init-tree com aviso ("DAG do Jira tem ciclo — corrija os links `is blocked by` no Jira e re-rode"). Estruturas criadas continuam, mas sem stack metadata.
+   - Exit 1 (input malformado) → fallback LLM: a própria orquestradora faz topo-sort manual (descrito em comentário no script). Para árvores até ~20 folhas, é viável inline.
+   - Python ausente → fallback LLM idem.
+
+4. **Gravar `stack_parent`/`stack_order` em cada status.md:**
+   Pra cada `{cod}` em `stack`:
+   ```yaml
+   stack_parent: {cod-do-parent ou null}
+   stack_order: {N inteiro}
+   stack_depth: {N inteiro}
+   ```
+   Delegar pra `python3 sub-skills/_lib/update_status.py` se disponível.
+
+5. **Caso "sem dependências":** se `order` tem só folhas com `stack_parent: null` (DAG plano), emitir aviso "nenhuma dependência detectada entre as folhas — `--stack` foi no-op" e prosseguir sem stack metadata. (Persistir `stack_parent: null` ainda é OK — registra que a varredura rodou.)
+
+6. **Warnings do helper** (lineages divergentes) → relatar no passo 7 sob "Atenções".
+
 ### 7. Reportar resultado
 
 ```
@@ -224,11 +256,79 @@ Falhas (se houver):
 
 ---
 
+## Modo auto (v12) — `init-tree --auto`
+
+Quando `--auto` está presente, após terminar os passos 1–7 (criação de estruturas + opcional stack), o init-tree encadeia automaticamente:
+
+### A. Worktree
+
+Invocar a skill global `worktree` programaticamente — cria `.worktrees/<branch-leaf>` e copia os arquivos de env ignorados (`.env*`, `.envrc`, etc.). Depois, criar **symlink** de `node_modules` (e `vendor/` em projetos PHP, se aplicável) do repo principal pro worktree pra evitar reinstall.
+
+> Nome do worktree: usa o **código da raiz** da árvore (ex: `PROJ-100`). Cada folha será uma branch dentro desse worktree, não worktrees separados.
+
+### B. Spec-tree (Q&A unificada upfront)
+
+Delegar pra sub-skill **`spec-tree`** passando a lista de folhas criadas. Spec-tree:
+
+1. Lê todas as descrições de folha.
+2. Agrupa perguntas por tema (auth, payments, UI, infra...) usando a heurística do `spec` v10.1.
+3. Faz **uma única sessão de Q&A** com o usuário cobrindo tudo.
+4. Gera cada spec individual aplicando o que coletou.
+5. Roda `review --spec` em batch (subagent isolado por spec).
+6. Atualiza cada `status.md` pra `phase: specified`.
+
+**Falha aqui = parada total.** Se o usuário abandona o Q&A, ou alguma spec é reprovada pelo review e não tem como corrigir automaticamente, init-tree --auto encerra com mensagem orientando rodar `spec {cod}` manual pras folhas pendentes.
+
+### C. Loop plan → implement → pack-up
+
+Pra cada folha em ordem (de `stack` se `--stack` também presente; ou ordem natural da árvore caso contrário):
+
+1. **plan** → escreve `plan.md`, resolve branch + base.
+   - Se `stack_parent` populado, `branch_base` = branch do parent (não `main`).
+2. **implement** → cria branch, executa plano.
+   - Se `stack_parent` populado, fazer rebase contra estado atual do parent antes de codar.
+   - Conflito de rebase irresolúvel → **parar e chamar humano**.
+3. **pack-up** → commit + push + cria **PR em draft contra `main`**.
+
+Após pack-up de cada folha, **não** invoca `ready` automaticamente — `ready` é sempre humano.
+
+### D. Critérios pra chamar humano
+
+A IA decide quando interromper baseada no objetivo (entregar todas as tasks corretamente). Casos típicos:
+
+- Q&A obrigatório aparece no meio do implement (não foi resolvido pelo spec-tree)
+- Conflito de rebase irresolúvel em cascata de stack
+- Build/test falhando após 2 tentativas de correção
+- MCP/ferramenta externa indisponível (Jira, gh) após retry
+- Plano detecta incompatibilidade com a spec (drift inesperado)
+
+Sempre: registrar contexto detalhado e qual task parou. Usuário retoma com `resume {cod}` ou ajustando manualmente.
+
+### E. Relatório final
+
+```
+✅ init-tree --auto PROJ-100 concluído!
+
+Worktree: .worktrees/PROJ-100 (symlinks: node_modules)
+Specs geradas: 4 (PROJ-101, PROJ-102, PROJ-103, PROJ-104)
+PRs criados em draft: 4
+  PROJ-101 → PR #234 (base: main)
+  PROJ-102 → PR #235 (base: PROJ-101-branch via stack)
+  PROJ-103 → PR #236 (base: PROJ-101-branch via stack)
+  PROJ-104 → PR #237 (base: PROJ-103-branch via stack)
+
+💡 Próximos passos:
+  • Revise os PRs em draft
+  • Conforme cada PR mergeia em main, rode `ready` pra liberar os dependentes
+```
+
+---
+
 ## Guard-rails
 
-- **Esta skill não toca no git.** Nem em folhas nem em contextos.
+- **Esta skill não toca no git no modo padrão.** Sem `--auto`, nunca cria branch nem worktree. Em `--auto`, a skill `worktree` chamada programaticamente é quem mexe — init-tree continua sem chamar git diretamente.
 - **Esta skill não escreve em `GOD/knowledge.md`.** Apenas a skill `learn`.
-- **Esta skill não chama `spec`/`plan`/`implement` automaticamente.** Downstream é sempre manual, uma folha por vez. O ciclo completo de cada folha (`spec → plan → implement → pack-up`) é feito a posteriori.
+- **Esta skill não chama `spec`/`plan`/`implement` automaticamente no modo padrão.** Downstream é manual, uma folha por vez. No modo `--auto` (v12), encadeia explicitamente — mas é opt-in claro via flag, não comportamento implícito.
 - **Esta skill não escreve specs.** A geração em batch foi removida na v11 — produzia rascunho que ninguém refinava. Quem quer spec, roda `spec {cod}` por folha.
 - **Esta skill não publica nada.** Sem hook `after spec` (porque spec não roda aqui).
 - **Esta skill não apaga pastas existentes.** Existências sempre preservadas — init-tree é puramente aditivo na v11.

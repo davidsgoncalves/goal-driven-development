@@ -11,9 +11,9 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 ## Versão atual
 
-**current_version: v11**
+**current_version: v12**
 
-> ⚠️ Ao criar uma nova versão (v12, v13, etc.), atualize este campo e adicione o arquivo de migração correspondente em `migrations/`.
+> ⚠️ Ao criar uma nova versão (v13, v14, etc.), atualize este campo e adicione o arquivo de migração correspondente em `migrations/`.
 
 ## Migrações disponíveis
 
@@ -29,6 +29,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 | v8 → v9 | `migrations/v8-to-v9.md` |
 | v9 → v10 | `migrations/v9-to-v10.md` |
 | v10 → v11 | `migrations/v10-to-v11.md` |
+| v11 → v12 | `migrations/v11-to-v12.md` |
 
 > Para adicionar uma nova versão no futuro, crie `migrations/vN-to-vN+1.md`, adicione a linha nesta tabela e bump `current_version` acima.
 

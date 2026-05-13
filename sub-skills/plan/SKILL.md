@@ -90,6 +90,11 @@ Guardar o modo detectado em memória para os passos seguintes.
 
 Esta skill é a responsável por **determinar** o nome e base da(s) branch(es), mas **não cria no git** — isso fica para o `implement`.
 
+**Stack mode override (v12):** antes de consultar `patterns.md`, ler `stack_parent` do `status.md`:
+
+- **Se `stack_parent` populado** → ler `GOD/tasks/{stack_parent}/status.md` e extrair `branch`. Esse valor vira o `branch_base` desta task (não a base do `patterns.md`). O nome da branch da task atual segue o padrão normal do `patterns.md`. Se o parent ainda não tem `branch` populado (parent não passou por `plan` ainda) → abortar: "stack_parent {stack_parent} ainda não tem branch resolvida. Rode `plan {stack_parent}` primeiro."
+- **Se `stack_parent` ausente ou null** → resolver `branch_base` normalmente via `patterns.md` (passos abaixo).
+
 1. **Ler `GOD/patterns.md`** e extrair:
    - **Branch inicial** — uma única entrada (single-project comum) ou lista de entradas `{projeto, branch-base}` (multi-project ou single-project com múltiplos projetos listados)
    - **Padrão de nome de branch** — formato esperado (ex: `task/<cod-da-task>/<descrição-kebab-case>`)

@@ -235,6 +235,24 @@ Valores aceitos:
 subagent
 
 > Override pontual via flag CLI: `review --execution --inline` força inline nesta invocação sem mudar config.
+
+## reviewers
+
+(v12) Lista de GitHub handles que a skill `ready` adiciona como reviewers do PR ao tirar de draft.
+Um handle por linha, sem `@`. Linhas vazias e linhas começando com `#` são ignoradas.
+
+(deixe vazio pra `ready` rodar sem adicionar reviewers — só tira de draft)
+
+```
+# alice
+# bob
+# carol
+```
+
+> Cenários:
+> - Time pequeno: 1-3 handles fixos, sempre os mesmos
+> - Round-robin: usuário gerencia manualmente comentando/descomentando linhas
+> - Sem reviewers automáticos: deixe vazio, `ready` apenas tira de draft
 ```
 
 Substituir `{specs_path}` pelo valor decidido. As seções `publish_spec_default_target`, `principles_path`, `architecture_path` e `domains_path` ficam vazias por padrão (retrocompat — quem não ativar não enxerga diferença). Se o usuário inicializou como repo git separado nesse passo, anotar isso no relatório final.

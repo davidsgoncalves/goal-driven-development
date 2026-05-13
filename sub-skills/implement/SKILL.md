@@ -179,6 +179,28 @@ Esta skill é responsável pela criação física da(s) branch(es) no git. O `pl
 5. **Atualizar `status.md`:**
    - Os campos `branch` / `branch_base` já refletem os nomes resolvidos pelo plan. Se algo mudou durante esta preparação (ex: recriou uma branch manualmente), atualizar.
 
+### 2.07. Cascata de rebase em stack mode (v12)
+
+Aplicar apenas quando `status.md` da task atual tem `stack_parent` populado (não-null). Em qualquer outro caso, **pular** este passo.
+
+1. **Ler `branch` do parent:** abrir `GOD/tasks/{stack_parent}/status.md` e extrair `branch` (string). Se ausente/null → abortar com "stack_parent {stack_parent} não tem branch — re-rode `plan {stack_parent}` antes". Se a task está em modo multi-project, esta cascata não se aplica (stack só faz sentido single-project na v12); pular.
+
+2. **Atualizar referência do parent:**
+   - `git fetch origin {parent_branch}` — se origin não tem a branch (parent ainda não foi pushado), usar apenas a branch local.
+   - Resolver o ref a usar: `origin/{parent_branch}` se o fetch trouxe algo; senão `{parent_branch}` local.
+
+3. **Verificar se rebase é necessário:**
+   - `git merge-base --is-ancestor {parent_ref} HEAD` — se sucesso (parent já é ancestral), nada a fazer, pular pra 2.1.
+   - Senão, prosseguir pro rebase.
+
+4. **Rebase:**
+   - `git rebase {parent_ref}`.
+   - Sucesso → log no changelog "▶ STACK-REBASE: rebased onto {parent_ref} at {timestamp}".
+   - Conflito → entrar em fluxo de **parada e chamada humana**:
+     - `git rebase --abort` (volta ao estado pré-rebase pra não deixar o repo em estado intermediário inseguro)
+     - Marcar `paused: true` em `status.md` + bloco `⏸ PAUSE` no changelog com detalhes ("rebase stack contra {stack_parent} falhou — conflitos em: {arquivos}")
+     - Encerrar com mensagem: "Conflito de cascata de stack contra `{stack_parent}`. Resolva manualmente (`git rebase {parent_ref}` + resolução) e rode `resume {cod}`."
+
 ### 2.1. Atualizar status para `implementing`
 
 Antes de começar a implementação de fato, atualizar `GOD/tasks/{cod-da-task}/status.md`:

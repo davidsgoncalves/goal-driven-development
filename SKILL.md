@@ -9,14 +9,21 @@ tools: Read, Glob, Grep, Bash, Edit, Write, Agent
 
 > Skill principal do framework GOD. Orquestra o ciclo de vida de uma task: da inicialização até a entrega. Tem awareness de todas as sub-skills e roteia o usuário para a skill correta.
 
-## Ciclo de vida de uma task (v11 — init estrutural + spec WHAT)
+## Ciclo de vida de uma task (v11 — init estrutural + spec WHAT; v12 — auto + stack + ready)
 
 ```
-install → init → spec → [publish-spec] → plan → implement → pack-up
+install → init → spec → [publish-spec] → plan → implement → pack-up → [ready]
                   ↑                       ↑        ↑           ↑
                review                  review   review      review
                (spec)                  (plan)  (update)  (execution)
 ```
+
+> **Adições v12:**
+> - **Flag `--auto`** (em `init` e `init-tree`): encadeia o ciclo todo até `pack-up` sem gates de aprovação. Abre worktree (com symlink de `node_modules`) e segue spec → plan → implement → pack-up. Em falha irresolúvel, para e chama humano.
+> - **Flag `--stack`** (em `init` e `init-tree`): lê `is blocked by` no Jira, monta DAG, grava `stack_parent` no `status.md`. `plan` usa branch do parent como `branch_base`; `implement` faz cascata de rebase contra o parent no início. PRs sempre abertos contra `main` (draft). Composável: `init-tree PROJ-100 --auto --stack`.
+> - **Sub-skill `ready`**: step manual pós-pack-up. Tira PR de draft + adiciona reviewers de `GOD/config.md`. Modo recomendação (sem arg) cruza `stack_parent` com estado dos PRs e propõe lista em batch ("PROJ-101 mergeou → liberar PROJ-102, PROJ-103, PROJ-104?"). **Nunca dispara automático** — sempre humano.
+> - **Sub-skill `spec-tree`**: usada por `init-tree --auto`. Q&A unificada em batch pra gerar N specs em uma sessão (em vez de N sessões individuais).
+> - **Helper `_lib/parse_jira_deps.py`**: topo-sort + atribuição de `stack_parent` a partir de DAG de dependências do Jira.
 
 > **Mudança v11:** init agora é o entry point estrutural — cria a pasta da task (`GOD/tasks/{cod}/`) com `plan.md` vazio e `status.md` (`phase: initialized`) **antes** de qualquer outra coisa. spec roda depois e atualiza esse mesmo status.md (transição `initialized → specified`). Espelha a simetria com `init-tree` (que também cria pasta primeiro). Init nunca tocou git, então a "spec-first como gate" da v9 era ceremonial — agora init é só bookkeeping puro.
 >
@@ -240,6 +247,8 @@ Ferramentas auxiliares (learn, update-plan, review, status, pause, resume, code-
 | `plan` | `sub-skills/plan/SKILL.md` | Planejar a implementação técnica (HOW) |
 | `implement` | `sub-skills/implement/SKILL.md` | Executar o plano. Freshness check estendido (v9) detecta drift de spec via changelog. |
 | `pack-up` | `sub-skills/pack-up/SKILL.md` | Finalizar e entregar a task. Carimba `spec_version_delivered` no PR. |
+| `ready` *(v12)* | `sub-skills/ready/SKILL.md` | Pós pack-up: tira PR de draft + adiciona reviewers do `GOD/config.md`. Suporta modo recomendação (sem arg) que cruza `stack_parent` com estado dos PRs no GitHub. Sempre manual — `--auto` não dispara. |
+| `spec-tree` *(v12)* | `sub-skills/spec-tree/SKILL.md` | Q&A unificada em batch pra gerar specs de N folhas. Roda dentro de `init-tree --auto` antes do loop, ou opt-in manual em árvores já inicializadas. |
 | `review` | `sub-skills/review/SKILL.md` | **(v10.4)** Wrapper de roteamento — delega pra `review-spec`/`review-plan`/`review-execution`. Mantém invocação `review --modo` retrocompatível |
 | `review-spec` | `sub-skills/review-spec/SKILL.md` | **(v10.4)** Verificações específicas do modo `--spec` (estrutura + lint + semântica). |
 | `review-plan` | `sub-skills/review-plan/SKILL.md` | **(v10.4)** Verificações específicas do modo `--plan` (cobertura ACs, scope creep, considerações arquiteturais). |
@@ -273,6 +282,10 @@ Quando o usuário interagir, identifique a intenção e delegue para a sub-skill
 | "planejar", "criar plano", "como implementar" | `plan` |
 | "implementar", "executar", "codar", "desenvolver" | `implement` |
 | "finalizar", "entregar", "pack up", "commitar e subir PR" | `pack-up` |
+| "ready", "tirar PR de draft", "liberar PR", "PR pronto", "adicionar reviewers", "marcar PR como pronto" | `ready` *(v12)* |
+| "init em auto", "ciclo automático", "rodar tudo", "init até o PR sem parar", "modo autopilot da task" | `init --auto` (single) ou `init-tree --auto` (lote) *(v12)* |
+| "stacked PR", "PR em cascata", "task que depende de outra task em andamento", "init com stack", "empilhar PRs" | `init --stack` ou `init-tree --stack` *(v12)* |
+| "Q&A em batch", "spec de várias tasks juntas", "spec tree", "specs unificadas" | `spec-tree` *(v12)* |
 | "status", "como estão as tasks", "dashboard" | `status` |
 | "doctor", "god doctor", "checar god", "verificar instalação", "está tudo ok?", "diagnosticar god", "o que falta no setup" | `doctor` |
 | "mudar o plano", "atualizar plano", "o plano mudou" | `update-plan` |
@@ -293,7 +306,7 @@ Antes de delegar para **qualquer** sub-skill exceto `install` e `upgrade`, verif
    - Se não existe e nem `GOD/` nem `GDD/` existem → sugerir `install`.
    - Se existe → ler o valor.
 
-2. **Valor de `GOD/VERSION` corresponde à versão atual do GOD (`v11`)?**
+2. **Valor de `GOD/VERSION` corresponde à versão atual do GOD (`v12`)?**
    - Sim → prosseguir com a skill solicitada.
    - Não → alertar o usuário e sugerir `upgrade`.
 
@@ -312,6 +325,8 @@ Antes de delegar para uma sub-skill, verifique se os pré-requisitos foram cumpr
 | `plan` | `GOD/tasks/{cod}/status.md` deve ter `spec_path` populado e ser não-trivial. Se ausente, sugerir rodar `spec` + `init`. Precisa ler `GOD/patterns.md` para resolver branch |
 | `implement` | `GOD/tasks/{cod}/plan.md` deve estar preenchido e `status.md` deve ter `branch` e `branch_base` populados (plan executado). Em modo trivial, plan é pulado e implement resolve a branch. Se algo essencial faltar, sugerir rodar `plan` primeiro |
 | `pack-up` | Deve haver alterações no git para commitar (implement executado). Se não houver, informar o usuário |
+| `ready` | `gh` CLI instalado e autenticado. Tasks com `phase: packed-up` no `GOD/tasks/`. `GOD/config.md` legível (seção `## reviewers` opcional — vazia → só tira de draft). |
+| `spec-tree` | Folhas em `GOD/tasks/*/` já inicializadas por `init-tree` (`phase: initialized`). MCP Atlassian autenticado. `specs_path` configurado em `GOD/config.md`. |
 | `update-spec` | `GOD/tasks/{cod}/status.md` deve existir com `phase ∈ {planned, implementing, implemented, packed-up}` (plan rodou). Se `phase ∈ {initialized, specified}`, sugerir `spec` ou `spec --review-feedback` em vez. `<spec_path>` deve apontar pra arquivo válido. |
 | `doctor` | Nenhum — skill é read-only e detecta o que existe no ambiente |
 | `update-plan` | `GOD/tasks/{cod}/plan.md` deve existir e estar preenchido |

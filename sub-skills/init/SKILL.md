@@ -37,6 +37,8 @@ você está aqui
 ## Flags
 
 - `--profile=trivial|normal|critical` — registra o perfil da task no `status.md`. Default `normal`. Não muda o comportamento desta skill, só carimba label que skills downstream consultam (ex: `pack-up` em task `critical` pode exigir aprovação extra; task `trivial` orienta o usuário a pular spec/plan).
+- `--stack` *(v12)* — detecta se esta task tem `is blocked by` apontando pra outra task que **já tem pasta em `GOD/tasks/`** e está com `phase ≥ planned` (já tem branch). Se sim, grava `stack_parent` no `status.md` — o `plan` vai usar a branch desse parent como `branch_base` em vez de `main`, e `implement` vai fazer cascata de rebase. Se nenhum blocker em escopo, vira no-op e emite aviso. Exige MCP Atlassian autenticado pra ler `issuelinks`.
+- `--auto` *(v12)* — encadeia o ciclo completo após init: `spec → plan → implement → pack-up` sem gates. Antes de começar, invoca a skill `worktree` (com symlink de `node_modules`). Em falha irresolúvel para e chama humano. Composável com `--stack`. Ver seção "Modo auto" abaixo.
 - `--debug` *(v10.6)* — registra passos em `debug.log` via `_lib/debug_log.py`. Pontos: identificar task (1), criar estrutura (3), hooks (0/4). Ver SKILL raiz.
 
 ## Invocação programática
@@ -117,6 +119,31 @@ prs: []
 - `spec_path`, `spec_version_consumed`: `null` — `spec` resolve quando rodar. Em fluxo trivial sem spec, ficam `null` permanentemente.
 - `branch`, `branch_base`: `null` — `plan` resolve, `implement` cria fisicamente.
 
+**Campos opcionais v12** (adicionados sob demanda, não fazem parte do template default):
+- `stack_parent`: cod da task da qual esta depende (gravado por `--stack` ou `init-tree --stack`). Ausente em tasks independentes.
+- `stack_order`, `stack_depth`: índice e profundidade no DAG (gravados por `init-tree --stack`).
+- `ready`, `ready_at`, `ready_reviewers`: marcadores de que `ready` já foi rodado (gravados pela sub-skill `ready`).
+
+### 3.3. Aplicar stack (se `--stack` presente)
+
+Apenas quando flag `--stack` está ativa:
+
+1. **Buscar issuelinks no Jira:** chamar MCP `getJiraIssue({cod})` e extrair links do tipo "is blocked by" (inward `Blocks`). Lista de códigos de blockers.
+   - Sem MCP Atlassian → registrar warning, pular stack, prosseguir.
+   - Task não-Jira (ID livre tipo `fix-button-copy`) → pular stack silenciosamente, sem warning.
+
+2. **Filtrar blockers em escopo:** pra cada blocker, verificar se `GOD/tasks/{blocker}/status.md` existe E `phase ∈ {planned, implementing, implemented, packed-up}` (tem branch já criada).
+   - Zero blockers em escopo → no-op, emitir aviso ("nenhum blocker em andamento no GOD — `--stack` não tem onde basear").
+   - 1 blocker em escopo → ele vira `stack_parent`.
+   - N > 1 em escopo → perguntar ao usuário qual usar como base, ou aceitar default "o mais profundo" (maior `stack_depth` no status.md; em empate, o mais recente por `updated_at`).
+
+3. **Gravar no `status.md`:**
+   ```yaml
+   stack_parent: {cod-do-blocker-escolhido}
+   stack_depth: {stack_depth do parent + 1}
+   ```
+   - `stack_order` não é gravado em single-task init — só faz sentido em init-tree onde existe ordem global.
+
 ### 3.5. Retrocompat com tasks legacy v8
 
 Se a pasta `GOD/tasks/{cod}/` já existe com `description.md` (legacy v8), preservar — não tocar no arquivo. Apenas adicionar `plan.md` (se ausente) e `status.md` (se ausente).
@@ -154,9 +181,56 @@ Se a skill foi invocada programaticamente (por `spec` no auto-init ou por `init-
 
 ---
 
+## Modo auto (v12) — `init --auto`
+
+Quando `--auto` está presente, após terminar os passos 0–5, init encadeia automaticamente o ciclo completo da task em sequência, sem gates de aprovação:
+
+### A. Worktree
+
+Invocar a skill global `worktree` programaticamente — cria `.worktrees/{cod}` e copia `.env*`/`.envrc`. Em seguida, criar **symlink** de `node_modules` (e `vendor/` em projetos PHP) do repo principal pro worktree.
+
+> Se a skill `worktree` não estiver disponível, init --auto continua direto no repo principal e emite aviso. Não é fatal — a maior parte do trade-off do worktree é poder paralelizar, e em single-task não há paralelismo.
+
+### B. Ciclo encadeado
+
+```
+spec → plan → implement → pack-up
+```
+
+Sem pausas entre etapas, sem confirmação humana. Cada skill é invocada programaticamente com o `{cod}` da task.
+
+**Q&A em spec:** mesmo em `--auto`, se a spec não tem informação suficiente, `spec` faz Q&A — a IA responde com base em descrição/contexto quando possível, e chama o humano quando inevitável (campo obrigatório sem fonte). Não há "responder default" silencioso pra preservar qualidade.
+
+### C. Cascata de rebase (se `--stack` co-aplicado)
+
+Se `stack_parent` foi populado no passo 3.3:
+- `plan` resolve `branch_base` = branch do parent.
+- `implement` faz rebase contra estado atual do parent antes de codar. Conflito irresolúvel → parar e chamar humano.
+
+### D. Critérios pra chamar humano
+
+A IA decide com base no objetivo (entregar a task corretamente). Casos comuns: Q&A obrigatório sem fonte automática, conflito de rebase, build/test falhando após 2 tentativas, ferramenta externa indisponível após retry. Sempre: registrar contexto detalhado em `changelog.md`, marcar `paused: true`, sair. Usuário retoma com `resume {cod}`.
+
+### E. Relatório final
+
+```
+✅ init --auto {cod} concluído!
+
+Worktree: .worktrees/{cod} (symlinks: node_modules)
+Spec: <specs_path>/tasks/{cod}.md
+Branch: {branch} (base: {base})
+PR: {url} (draft)
+
+💡 Próximos passos:
+  • Revise o PR em draft
+  • Quando estiver pronto, rode `ready {cod}` pra liberar pra review humano
+```
+
+---
+
 ## Guard-rails
 
-- **Esta skill não toca no git.** Não faz checkout, não cria branch, não valida estado. Resolução do nome da branch é responsabilidade do `plan`; criação física é do `implement`.
+- **Esta skill não toca no git no modo padrão.** Não faz checkout, não cria branch, não valida estado. Resolução do nome da branch é responsabilidade do `plan`; criação física é do `implement`. No modo `--auto`, a skill `worktree` chamada programaticamente é quem mexe — init continua sem chamar git diretamente.
 - **Esta skill não escreve em `GOD/knowledge.md`.** Apenas a skill `learn` pode fazê-lo.
 - **Esta skill não busca dados em sistemas externos** (Jira, Figma). Esse fetch é do `spec`.
 - **Esta skill não faz Q&A com o usuário sobre escopo.** Q&A acontece no `spec`.
